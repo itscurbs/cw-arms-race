@@ -15,11 +15,11 @@ object WarfareTest {
         if (level !is ServerLevel) return
         SmokeEffect.start(
             level, event.pos,
-            3.0f, // radius
-            100, // duration ticks
-            20.0f, // density
-            0.5f, // riseSpeed
-            60 // particle lifetime
+            3.0f,
+            100,
+            20.0f,
+            0.5f,
+            60,
         )
     }
 }

@@ -39,6 +39,7 @@ object Cw_arms_race {
         ModItems.REGISTRY.register(MOD_BUS)
         ModEntities.REGISTRY.register(MOD_BUS)
 
+
         val obj = runForDist(clientTarget = {
             MOD_BUS.addListener(::onClientSetup)
             // Renderers are client-only. Registering one on a dedicated server
