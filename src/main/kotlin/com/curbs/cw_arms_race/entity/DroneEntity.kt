@@ -12,21 +12,24 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MoverType
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Rotation
+import net.minecraft.world.phys.Vec2
 import net.minecraft.world.phys.Vec3
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.neoforge.network.PacketDistributor
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
+import org.joml.Vector2f
 import software.bernie.geckolib.animatable.GeoEntity
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.animation.AnimatableManager
 import software.bernie.geckolib.util.GeckoLibUtil
 import java.util.UUID
+import kotlin.math.cos
+import kotlin.math.sin
 
 data class DroneInputPayload(
-    val forward: Boolean,
-    val backward: Boolean,
-    val left: Boolean,
-    val right: Boolean
+    val move: Vec2,
+    val mouse: Vec2,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<DroneInputPayload> {
@@ -40,12 +43,20 @@ data class DroneInputPayload(
 
         val STREAM_CODEC: StreamCodec<ByteBuf, DroneInputPayload> =
             StreamCodec.composite(
-                ByteBufCodecs.BOOL, DroneInputPayload::forward,
-                ByteBufCodecs.BOOL, DroneInputPayload::backward,
-                ByteBufCodecs.BOOL, DroneInputPayload::left,
-                ByteBufCodecs.BOOL, DroneInputPayload::right,
-                ::DroneInputPayload
-            )
+                ByteBufCodecs.FLOAT,
+                { it.move.x },
+                ByteBufCodecs.FLOAT,
+                { it.move.y },
+                ByteBufCodecs.FLOAT,
+                { it.mouse.x },
+                ByteBufCodecs.FLOAT,
+                { it.mouse.y }
+            ) { movementX, movementY, mouseX, mouseY ->
+                DroneInputPayload(
+                    Vec2(movementX, movementY),
+                    Vec2(mouseX, mouseY)
+                )
+            }
     }
 }
 
@@ -60,10 +71,9 @@ class DroneEntity(
     level: Level
 ) : Entity(type, level), GeoEntity {
 
-    var forward = false
-    var backward = false
-    var left = false
-    var right = false
+
+    var move: Vec2 = Vec2(0f, 0f)
+    var mouse: Vec2 = Vec2(0f, 0f)
 
     var ownerId: UUID? = null
 
@@ -94,32 +104,52 @@ class DroneEntity(
         super.tick()
 
         if (!level().isClientSide) {
-            var x = 0.0
-            var z = 0.0
 
-            if (forward) z += 1.0
-            if (backward) z -= 1.0
-            if (left) x -= 1.0
-            if (right) x += 1.0
+            val strafe = -move.x.toDouble()
+            val forward = move.y.toDouble()
 
-            val input = Vec3(x, 0.0, z)
+            val yaw = Math.toRadians(yRot.toDouble())
+            val pitch = Math.toRadians(xRot.toDouble())
 
-            if (input.lengthSqr() > 0.0) {
-                val velocity = input.normalize().scale(0.1)
+            val forwardX = -sin(yaw) * cos(pitch)
+            val forwardY = -sin(pitch)
+            val forwardZ = cos(yaw) * cos(pitch)
+
+            val rightX = cos(yaw)
+            val rightZ = sin(yaw)
+
+            val x = forwardX * forward + rightX * strafe
+            val y = forwardY * forward
+            val z = forwardZ * forward + rightZ * strafe
+
+            val movement = Vec3(x, y, z)
+
+            if (movement.lengthSqr() > 0.0) {
+                val velocity = movement.normalize().scale(0.5)
 
                 deltaMovement = velocity
                 move(MoverType.SELF, velocity)
-            } else {
-                deltaMovement = Vec3.ZERO
+            }
+
+            if (ownerId == null) {
+                discard()
             }
         } else {
             val mc = Minecraft.getInstance()
+            val move = Vec2(
+                (if (mc.options.keyRight.isDown) 1f else 0f) -
+                        (if (mc.options.keyLeft.isDown) 1f else 0f),
+                (if (mc.options.keyUp.isDown) 1f else 0f) -
+                        (if (mc.options.keyDown.isDown) 1f else 0f),
+            )
+            val mouse = Vec2(
+                mc.mouseHandler.xVelocity.toFloat(),
+                mc.mouseHandler.yVelocity.toFloat(),
+            )
             PacketDistributor.sendToServer(
                 DroneInputPayload(
-                    mc.options.keyUp.isDown,
-                    mc.options.keyDown.isDown,
-                    mc.options.keyLeft.isDown,
-                    mc.options.keyRight.isDown,
+                    move,
+                    mouse
                 )
             )
         }

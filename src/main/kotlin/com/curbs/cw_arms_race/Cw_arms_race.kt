@@ -121,10 +121,10 @@ object Cw_arms_race {
 
                 val drone = player.level().getEntity(droneId) as? DroneEntity ?: return@enqueueWork
 
-                drone.forward = payload.forward
-                drone.backward = payload.backward
-                drone.left = payload.left
-                drone.right = payload.right
+                drone.move = payload.move
+                drone.mouse = payload.mouse
+                drone.yRot += payload.mouse.x * 0.5f
+                drone.xRot += payload.mouse.y * 0.5f
             }
         }
 
