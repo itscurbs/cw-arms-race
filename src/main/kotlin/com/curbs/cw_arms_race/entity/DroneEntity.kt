@@ -20,6 +20,7 @@ import software.bernie.geckolib.animatable.GeoEntity
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.animation.AnimatableManager
 import software.bernie.geckolib.util.GeckoLibUtil
+import java.util.UUID
 
 data class DroneInputPayload(
     val forward: Boolean,
@@ -63,6 +64,10 @@ class DroneEntity(
     var backward = false
     var left = false
     var right = false
+
+    var ownerId: UUID? = null
+
+
 
     /**
      * Geckolib's per-entity animation state store. Created from `this`, which is

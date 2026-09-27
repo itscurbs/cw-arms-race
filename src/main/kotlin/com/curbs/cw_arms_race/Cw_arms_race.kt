@@ -5,6 +5,7 @@ import com.curbs.cw_arms_race.entity.DroneEntity
 import com.curbs.cw_arms_race.entity.DroneInputPayload
 import com.curbs.cw_arms_race.entity.ModEntities
 import com.curbs.cw_arms_race.item.ModItems
+import com.curbs.cw_arms_race.item.SetDroneCameraPayload
 import net.minecraft.client.Minecraft
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.item.CreativeModeTabs
@@ -16,6 +17,8 @@ import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent
+import net.neoforged.neoforge.client.event.ClientTickEvent
+import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
@@ -64,6 +67,8 @@ object Cw_arms_race {
      */
     private fun onClientSetup(event: FMLClientSetupEvent) {
         LOGGER.log(Level.INFO, "Initializing client...")
+
+        NeoForge.EVENT_BUS.addListener(CameraHandler::onClientTick)
     }
 
     /**
@@ -106,17 +111,33 @@ object Cw_arms_race {
         ) { payload, context ->
             // This runs on the SERVER
             context.enqueueWork {
-                val level = context.player().level()
+                val player = context.player()
 
-                if (level is ServerLevel) {
-                    for (entity in level.allEntities) {
-                        if (entity is DroneEntity) {
-                            entity.forward = payload.forward
-                            entity.backward = payload.backward
-                            entity.left = payload.left
-                            entity.right = payload.right
-                        }
-                    }
+                if (!player.persistentData.contains("Drone")) {
+                    return@enqueueWork
+                }
+
+                val droneId = player.persistentData.getInt("Drone")
+
+                val drone = player.level().getEntity(droneId) as? DroneEntity ?: return@enqueueWork
+
+                drone.forward = payload.forward
+                drone.backward = payload.backward
+                drone.left = payload.left
+                drone.right = payload.right
+            }
+        }
+
+        registrar.playToClient(
+            SetDroneCameraPayload.TYPE,
+            SetDroneCameraPayload.STREAM_CODEC
+        ) { payload, context ->
+            context.enqueueWork {
+                val mc = Minecraft.getInstance()
+                val drone = mc.level?.getEntity(payload.droneId)
+
+                if (drone is DroneEntity) {
+                    mc.cameraEntity = drone
                 }
             }
         }

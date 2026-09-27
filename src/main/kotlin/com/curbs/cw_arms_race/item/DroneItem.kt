@@ -2,6 +2,7 @@ package com.curbs.cw_arms_race.item
 
 import com.curbs.cw_arms_race.entity.DroneEntity
 import com.curbs.cw_arms_race.entity.ModEntities
+import net.minecraft.client.Minecraft
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
@@ -12,6 +13,36 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
+import io.netty.buffer.ByteBuf
+import net.minecraft.network.codec.ByteBufCodecs
+import net.minecraft.network.codec.StreamCodec
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerPlayer
+import net.neoforged.neoforge.network.PacketDistributor
+
+data class SetDroneCameraPayload(
+    val droneId: Int
+) : CustomPacketPayload {
+
+    override fun type(): CustomPacketPayload.Type<SetDroneCameraPayload> = TYPE
+
+    companion object {
+        val TYPE = CustomPacketPayload.Type<SetDroneCameraPayload>(
+            ResourceLocation.fromNamespaceAndPath(
+                "cw_arms_race",
+                "set_drone_camera"
+            )
+        )
+
+        val STREAM_CODEC: StreamCodec<ByteBuf, SetDroneCameraPayload> =
+            StreamCodec.composite(
+                ByteBufCodecs.VAR_INT,
+                SetDroneCameraPayload::droneId,
+                ::SetDroneCameraPayload
+            )
+    }
+}
 
 /**
  * The FPV drone item. Right-clicking places a [DroneEntity].
@@ -28,7 +59,7 @@ class DroneItem(properties: Item.Properties) : Item(properties) {
      * the world on the server side, otherwise the two sides desync.
      */
     override fun useOn(context: UseOnContext): InteractionResult {
-        val player = context.player
+        val player = context.player as? ServerPlayer ?: return InteractionResult.PASS
         val serverLevel = context.level as? ServerLevel ?: return InteractionResult.PASS
 
         val stack = context.itemInHand
@@ -41,8 +72,16 @@ class DroneItem(properties: Item.Properties) : Item(properties) {
         val drone = DroneEntity(ModEntities.FPV_DRONE, serverLevel)
         drone.setPos(spawnPos.x, spawnPos.y, spawnPos.z)
 
-        // Actually put the entity into the world.
+        drone.ownerId = player.uuid
+
+        val pd = player.persistentData
+
+        pd.putInt("Drone", drone.id)
+
+        // Actually put the entity into the world.a
         serverLevel.addFreshEntity(drone)
+
+        PacketDistributor.sendToPlayer(player, SetDroneCameraPayload(drone.id))
 
         // Use up one drone. Does not shrink the stack in creative mode.
         stack.consume(1, player)
