@@ -1,9 +1,12 @@
 package com.curbs.cw_arms_race
 
 import com.curbs.cw_arms_race.client.DroneRenderer
+import com.curbs.cw_arms_race.entity.DroneEntity
+import com.curbs.cw_arms_race.entity.DroneInputPayload
 import com.curbs.cw_arms_race.entity.ModEntities
 import com.curbs.cw_arms_race.item.ModItems
 import net.minecraft.client.Minecraft
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.item.CreativeModeTabs
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
@@ -13,6 +16,7 @@ import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -89,6 +93,32 @@ object Cw_arms_race {
     fun addCreative(event: BuildCreativeModeTabContentsEvent) {
         if (event.tabKey == CreativeModeTabs.COMBAT) {
             event.accept(ModItems.FPV_DRONE)
+        }
+    }
+
+    @SubscribeEvent
+    fun registerPayloads(event: RegisterPayloadHandlersEvent) {
+        val registrar = event.registrar("1")
+
+        registrar.playToServer(
+            DroneInputPayload.TYPE,
+            DroneInputPayload.STREAM_CODEC
+        ) { payload, context ->
+            // This runs on the SERVER
+            context.enqueueWork {
+                val level = context.player().level()
+
+                if (level is ServerLevel) {
+                    for (entity in level.allEntities) {
+                        if (entity is DroneEntity) {
+                            entity.forward = payload.forward
+                            entity.backward = payload.backward
+                            entity.left = payload.left
+                            entity.right = payload.right
+                        }
+                    }
+                }
+            }
         }
     }
 }
