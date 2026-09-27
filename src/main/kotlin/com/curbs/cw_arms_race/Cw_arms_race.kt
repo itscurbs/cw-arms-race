@@ -35,7 +35,6 @@ object Cw_arms_race {
     init {
         LOGGER.log(Level.INFO, "Hello world!")
 
-        // Register the KDeferredRegister to the mod-specific event bus
         ModItems.REGISTRY.register(MOD_BUS)
         ModEntities.REGISTRY.register(MOD_BUS)
 
