@@ -2,5 +2,6 @@
   "itemGroup.cw_arms_race": "Example Mod Tab",
   "block.cw_arms_race.example_block": "Example Block",
   "item.cw_arms_race.example_item": "Example Item",
-  "item.cw_arms_race.fpv_drone": "FPV Drone"
+  "item.cw_arms_race.fpv_drone": "FPV Drone",
+  "entity.cw_arms_race.fpv_drone": "FPV Drone"
 }
