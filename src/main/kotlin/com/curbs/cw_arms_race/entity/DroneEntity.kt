@@ -136,6 +136,9 @@ class DroneEntity(
             }
         } else {
             val mc = Minecraft.getInstance()
+            // Only pilot the drone we're actually looking through.
+            // Otherwise every loaded drone spams the server each tick.
+            if (mc.cameraEntity !== this) return
             val move = Vec2(
                 (if (mc.options.keyRight.isDown) 1f else 0f) -
                         (if (mc.options.keyLeft.isDown) 1f else 0f),

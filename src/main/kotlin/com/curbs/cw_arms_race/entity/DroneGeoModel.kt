@@ -26,9 +26,10 @@ class DroneGeoModel : GeoModel<DroneEntity>() {
         ResourceLocation.fromNamespaceAndPath(Cw_arms_race.ID, "textures/entity/fpv_drone.png")
 
     /**
-     * GeoEntityRenderer only yaws the whole model from yRot; it ignores xRot.
-     * Pitch the root bone here so the model visually matches the flight pitch.
-     * Flip the sign if it pitches backwards.
+     * Generic-Entity GeoRenderer passes yaw=0 to applyRotations (it only yaws
+     * LivingEntity via yBodyRot), so yaw must be applied to the bone manually,
+     * same as pitch. Root ends at 180deg, so bone uses -yRot for 180-yRot total.
+     * Flip signs if mirrored/backwards.
      */
     override fun setCustomAnimations(
         animatable: DroneEntity,
@@ -36,7 +37,8 @@ class DroneGeoModel : GeoModel<DroneEntity>() {
         animationState: AnimationState<DroneEntity>
     ) {
         getAnimationProcessor().getBone("bb_main")?.let { bone ->
-            bone.rotX = animatable.xRot * Math.PI.toFloat() / 180f
+            bone.rotX = -animatable.xRot * Math.PI.toFloat() / 180f
+            bone.rotY = -animatable.yRot * Math.PI.toFloat() / 180f
         }
     }
 }
