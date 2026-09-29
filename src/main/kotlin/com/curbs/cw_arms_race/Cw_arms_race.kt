@@ -123,8 +123,8 @@ object Cw_arms_race {
 
                 drone.move = payload.move
                 drone.mouse = payload.mouse
-                drone.yRot += payload.mouse.x * 0.5f
-                drone.xRot += payload.mouse.y * 0.5f
+                val yaw = payload.mouse.x * 0.5f
+                val pitch = payload.mouse.y * 0.5f
             }
         }
 
