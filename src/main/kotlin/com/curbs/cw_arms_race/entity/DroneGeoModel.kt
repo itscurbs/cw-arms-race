@@ -2,6 +2,7 @@ package com.curbs.cw_arms_race.entity
 
 import com.curbs.cw_arms_race.Cw_arms_race
 import net.minecraft.resources.ResourceLocation
+import software.bernie.geckolib.animation.AnimationState
 import software.bernie.geckolib.model.GeoModel
 
 /**
@@ -23,4 +24,19 @@ class DroneGeoModel : GeoModel<DroneEntity>() {
 
     override fun getTextureResource(animatable: DroneEntity): ResourceLocation =
         ResourceLocation.fromNamespaceAndPath(Cw_arms_race.ID, "textures/entity/fpv_drone.png")
+
+    /**
+     * GeoEntityRenderer only yaws the whole model from yRot; it ignores xRot.
+     * Pitch the root bone here so the model visually matches the flight pitch.
+     * Flip the sign if it pitches backwards.
+     */
+    override fun setCustomAnimations(
+        animatable: DroneEntity,
+        instanceId: Long,
+        animationState: AnimationState<DroneEntity>
+    ) {
+        getAnimationProcessor().getBone("bb_main")?.let { bone ->
+            bone.rotX = animatable.xRot * Math.PI.toFloat() / 180f
+        }
+    }
 }

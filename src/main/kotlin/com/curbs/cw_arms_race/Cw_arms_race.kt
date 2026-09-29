@@ -9,6 +9,7 @@ import com.curbs.cw_arms_race.item.SetDroneCameraPayload
 import net.minecraft.client.Minecraft
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.item.CreativeModeTabs
+import net.minecraft.world.phys.Vec2
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent
@@ -123,8 +124,8 @@ object Cw_arms_race {
 
                 drone.move = payload.move
                 drone.mouse = payload.mouse
-                val yaw = payload.mouse.x * 0.5f
-                val pitch = payload.mouse.y * 0.5f
+                drone.setYRot(drone.yRot + payload.mouse.x * 0.5f)
+                drone.setXRot((drone.xRot + payload.mouse.y * 0.5f).coerceIn(-90f, 90f))
             }
         }
 
