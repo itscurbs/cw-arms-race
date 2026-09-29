@@ -18,6 +18,7 @@ import net.minecraft.world.phys.Vec3
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.neoforge.network.PacketDistributor
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
+import org.apache.logging.log4j.LogManager
 import org.joml.Vector2f
 import software.bernie.geckolib.animatable.GeoEntity
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
@@ -77,6 +78,25 @@ class DroneEntity(
 
     var ownerId: UUID? = null
 
+    companion object {
+        private val LOGGER = LogManager.getLogger("cw_arms_race")
+    }
+
+    private fun onImpact() {
+        LOGGER.info("Drone {} collided with block at {}", uuid, blockPosition())
+        val pos = blockPosition()
+
+        level().explode(null,
+            pos.x.toDouble(),
+            pos.y.toDouble(),
+            pos.z.toDouble(),
+            16.0F,
+            Level.ExplosionInteraction.TNT
+        )
+
+        discard()
+    }
+
 
 
     /**
@@ -129,6 +149,10 @@ class DroneEntity(
 
                 deltaMovement = velocity
                 move(MoverType.SELF, velocity)
+
+                if (horizontalCollision || verticalCollision) {
+                    onImpact()
+                }
             }
 
             if (ownerId == null) {
