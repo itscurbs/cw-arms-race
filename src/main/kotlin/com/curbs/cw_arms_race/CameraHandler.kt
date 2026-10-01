@@ -2,6 +2,7 @@ package com.curbs.cw_arms_race
 
 import com.curbs.cw_arms_race.entity.DroneEntity
 import net.minecraft.client.Minecraft
+import net.neoforged.neoforge.client.event.CalculatePlayerTurnEvent
 import net.neoforged.neoforge.client.event.ClientTickEvent
 import net.neoforged.neoforge.client.event.RenderHandEvent
 
@@ -21,5 +22,29 @@ object CameraHandler {
         if (mc.cameraEntity is DroneEntity) {
             event.isCanceled = true
         }
+    }
+
+    fun onCalculateTurn(event: CalculatePlayerTurnEvent) {
+        val mc = Minecraft.getInstance()
+        val drone = mc.cameraEntity as? DroneEntity ?: return
+        if (drone.isRemoved) return
+
+        val realSens = event.mouseSensitivity
+        val f = realSens * 0.6 + 0.2
+        val f8 = f * f * f * 8.0 // vanilla normal-turn scale, matches MouseHandler.turnPlayer
+
+        val dx = mc.mouseHandler.xVelocity * f8
+        val dy = mc.mouseHandler.yVelocity * f8
+        val inv = if (mc.options.invertYMouse().get()) -1.0 else 1.0
+
+        // Entity.turn() multiplies by 0.15 inside; replicate it here.
+        drone.applyRotation(
+            (dx * 0.15).toFloat(),
+            (dy * inv * 0.15).toFloat()
+        )
+
+        // f = 0 -> player.turn(0, 0); -1/3 * 0.6 + 0.2 = 0
+        event.mouseSensitivity = -1.0 / 3.0
+        event.cinematicCameraEnabled = false
     }
 }

@@ -8,7 +8,6 @@ import com.curbs.cw_arms_race.item.ModItems
 import com.curbs.cw_arms_race.item.SetDroneCameraPayload
 import net.minecraft.client.Minecraft
 import net.minecraft.world.item.CreativeModeTabs
-import net.minecraft.world.phys.Vec2
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent
@@ -70,6 +69,7 @@ object Cw_arms_race {
 
         NeoForge.EVENT_BUS.addListener(CameraHandler::onClientTick)
         NeoForge.EVENT_BUS.addListener(CameraHandler::onRenderHand)
+        NeoForge.EVENT_BUS.addListener(CameraHandler::onCalculateTurn)
     }
 
     /**
@@ -123,9 +123,8 @@ object Cw_arms_race {
                 val drone = player.level().getEntity(droneId) as? DroneEntity ?: return@enqueueWork
 
                 drone.move = payload.move
-                drone.mouse = payload.mouse
-                drone.setYRot(drone.yRot + payload.mouse.x * 0.5f)
-                drone.setXRot((drone.xRot + payload.mouse.y * 0.5f).coerceIn(-90f, 90f))
+                drone.setYRot(payload.yaw)
+                drone.setXRot(payload.pitch.coerceIn(-90f, 90f))
             }
         }
 

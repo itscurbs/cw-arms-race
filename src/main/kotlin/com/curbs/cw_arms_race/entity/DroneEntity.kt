@@ -1,6 +1,6 @@
 package com.curbs.cw_arms_race.entity
 
-import com.julian.createwarfare.effects.server.FireballEffect
+import com.julian.createwarfare.effects.server.WaveEffect
 import com.julian.createwarfare.explosions.types.GenericExplosion
 import io.netty.buffer.ByteBuf
 import net.minecraft.client.Minecraft
@@ -11,6 +11,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MoverType
@@ -29,7 +30,8 @@ import kotlin.math.sin
 
 data class DroneInputPayload(
     val move: Vec2,
-    val mouse: Vec2,
+    val yaw: Float,
+    val pitch: Float,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<DroneInputPayload> {
@@ -48,13 +50,14 @@ data class DroneInputPayload(
                 ByteBufCodecs.FLOAT,
                 { it.move.y },
                 ByteBufCodecs.FLOAT,
-                { it.mouse.x },
+                { it.yaw },
                 ByteBufCodecs.FLOAT,
-                { it.mouse.y }
-            ) { movementX, movementY, mouseX, mouseY ->
+                { it.pitch }
+            ) { movementX, movementY, yaw, pitch ->
                 DroneInputPayload(
                     Vec2(movementX, movementY),
-                    Vec2(mouseX, mouseY)
+                    yaw,
+                    pitch,
                 )
             }
     }
@@ -73,7 +76,6 @@ class DroneEntity(
 
 
     var move: Vec2 = Vec2(0f, 0f)
-    var mouse: Vec2 = Vec2(0f, 0f)
 
     var ownerId: UUID? = null
 
@@ -93,11 +95,31 @@ class DroneEntity(
             96.0F,
         )
 
-        FireballEffect.start(level() as ServerLevel?, blockPosition(), 1.0F, 1.0F)
+        WaveEffect.start(
+            level() as ServerLevel?,
+            blockPosition(), 1.0F,
+            1.0F,
+            0xffe3b8,
+            0.0F,
+        )
 
 
 
         discard()
+    }
+
+    /**
+     * Frame-rate yaw/pitch for the piloted drone.
+     * Takes already-scaled degree deltas (sensitivity applied by caller),
+     * so this stays server-safe. Snaps yRotO/xRotO so the camera uses the
+     * exact value this frame instead of lerping a tick behind.
+     */
+    fun applyRotation(yawDeltaDeg: Float, pitchDeltaDeg: Float) {
+        setYRot(yRot + yawDeltaDeg)
+        setXRot(Mth.clamp(xRot + pitchDeltaDeg, -90f, 90f))
+
+        yRotO = yRot
+        xRotO = xRot
     }
 
 
@@ -172,14 +194,13 @@ class DroneEntity(
                 (if (mc.options.keyUp.isDown) 1f else 0f) -
                         (if (mc.options.keyDown.isDown) 1f else 0f),
             )
-            val mouse = Vec2(
-                mc.mouseHandler.xVelocity.toFloat(),
-                mc.mouseHandler.yVelocity.toFloat(),
-            )
+            // Rotation is applied per-frame in CameraHandler.onCalculateTurn;
+            // here we just send the absolute result so the server converges.
             PacketDistributor.sendToServer(
                 DroneInputPayload(
                     move,
-                    mouse
+                    yRot,
+                    xRot
                 )
             )
         }
