@@ -7,7 +7,6 @@ import com.curbs.cw_arms_race.entity.ModEntities
 import com.curbs.cw_arms_race.item.ModItems
 import com.curbs.cw_arms_race.item.SetDroneCameraPayload
 import net.minecraft.client.Minecraft
-import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.phys.Vec2
 import net.neoforged.bus.api.SubscribeEvent
@@ -70,6 +69,7 @@ object Cw_arms_race {
         LOGGER.log(Level.INFO, "Initializing client...")
 
         NeoForge.EVENT_BUS.addListener(CameraHandler::onClientTick)
+        NeoForge.EVENT_BUS.addListener(CameraHandler::onRenderHand)
     }
 
     /**
@@ -141,6 +141,6 @@ object Cw_arms_race {
                     mc.cameraEntity = drone
                 }
             }
-        }
+;        }
     }
 }

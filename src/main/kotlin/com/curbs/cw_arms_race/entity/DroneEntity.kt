@@ -1,5 +1,7 @@
 package com.curbs.cw_arms_race.entity
 
+import com.julian.createwarfare.effects.server.FireballEffect
+import com.julian.createwarfare.explosions.types.GenericExplosion
 import io.netty.buffer.ByteBuf
 import net.minecraft.client.Minecraft
 import net.minecraft.nbt.CompoundTag
@@ -8,23 +10,20 @@ import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MoverType
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.phys.Vec2
 import net.minecraft.world.phys.Vec3
-import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.neoforge.network.PacketDistributor
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import org.apache.logging.log4j.LogManager
-import org.joml.Vector2f
 import software.bernie.geckolib.animatable.GeoEntity
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.animation.AnimatableManager
 import software.bernie.geckolib.util.GeckoLibUtil
-import java.util.UUID
+import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -86,13 +85,17 @@ class DroneEntity(
         LOGGER.info("Drone {} collided with block at {}", uuid, blockPosition())
         val pos = blockPosition()
 
-        level().explode(null,
-            pos.x.toDouble(),
-            pos.y.toDouble(),
-            pos.z.toDouble(),
-            16.0F,
-            Level.ExplosionInteraction.TNT
+        GenericExplosion.trigger(
+            level(),
+            blockPosition(),
+            128.0F,
+            8.0F,
+            96.0F,
         )
+
+        FireballEffect.start(level() as ServerLevel?, blockPosition(), 1.0F, 1.0F)
+
+
 
         discard()
     }
