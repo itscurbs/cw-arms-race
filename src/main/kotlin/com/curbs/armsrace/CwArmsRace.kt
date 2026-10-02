@@ -1,16 +1,15 @@
-package com.curbs.cw_arms_race
+package com.curbs.armsrace
 
-import com.curbs.cw_arms_race.client.DroneRenderer
-import com.curbs.cw_arms_race.entity.DroneEntity
-import com.curbs.cw_arms_race.entity.DroneInputPayload
-import com.curbs.cw_arms_race.entity.ModEntities
-import com.curbs.cw_arms_race.item.ModItems
-import com.curbs.cw_arms_race.item.SetDroneCameraPayload
+import com.curbs.armsrace.client.DroneRenderer
+import com.curbs.armsrace.entity.DroneEntity
+import com.curbs.armsrace.entity.DroneInputPayload
+import com.curbs.armsrace.entity.ModEntities
+import com.curbs.armsrace.item.ModCreativeModeTabs
+import com.curbs.armsrace.item.ModItems
+import com.curbs.armsrace.item.SetDroneCameraPayload
 import net.minecraft.client.Minecraft
-import net.minecraft.world.item.CreativeModeTabs
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
-import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
@@ -30,10 +29,10 @@ import thedarkcolour.kotlinforforge.neoforge.forge.runForDist
  *
  * An example for blocks is in the `blocks` package of this mod.
  */
-@Mod(Cw_arms_race.ID)
+@Mod(CwArmsRace.ID)
 @EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
-object Cw_arms_race {
-    const val ID = "cw_arms_race"
+object CwArmsRace {
+    const val ID = "armsrace"
 
     // the logger for our mod
     val LOGGER: Logger = LogManager.getLogger(ID)
@@ -43,6 +42,7 @@ object Cw_arms_race {
 
         ModItems.REGISTRY.register(MOD_BUS)
         ModEntities.REGISTRY.register(MOD_BUS)
+        ModCreativeModeTabs.REGISTRY.register(MOD_BUS)
 
 
         val obj = runForDist(clientTarget = {
@@ -94,13 +94,6 @@ object Cw_arms_race {
     @SubscribeEvent
     fun onCommonSetup(event: FMLCommonSetupEvent) {
         LOGGER.log(Level.INFO, "Hello! This is working!")
-    }
-
-    @SubscribeEvent
-    fun addCreative(event: BuildCreativeModeTabContentsEvent) {
-        if (event.tabKey == CreativeModeTabs.COMBAT) {
-            event.accept(ModItems.FPV_DRONE)
-        }
     }
 
     @SubscribeEvent

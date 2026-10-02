@@ -1,6 +1,6 @@
-package com.curbs.cw_arms_race.item
+package com.curbs.armsrace.item
 
-import com.curbs.cw_arms_race.Cw_arms_race
+import com.curbs.armsrace.CwArmsRace
 import net.minecraft.world.item.Item
 import net.neoforged.neoforge.registries.DeferredRegister
 
@@ -8,7 +8,7 @@ import net.neoforged.neoforge.registries.DeferredRegister
 import thedarkcolour.kotlinforforge.neoforge.forge.getValue
 
 object ModItems {
-    val REGISTRY = DeferredRegister.createItems(Cw_arms_race.ID)
+    val REGISTRY = DeferredRegister.createItems(CwArmsRace.ID)
 
     // The drone. Right-clicking launches it (see DroneItem).
     val FPV_DRONE by REGISTRY.register("fpv_drone") { ->

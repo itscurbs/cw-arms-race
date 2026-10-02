@@ -1,7 +1,7 @@
-package com.curbs.cw_arms_race.item
+package com.curbs.armsrace.item
 
-import com.curbs.cw_arms_race.entity.DroneEntity
-import com.curbs.cw_arms_race.entity.ModEntities
+import com.curbs.armsrace.entity.DroneEntity
+import com.curbs.armsrace.entity.ModEntities
 import net.minecraft.client.Minecraft
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionHand
@@ -30,7 +30,7 @@ data class SetDroneCameraPayload(
     companion object {
         val TYPE = CustomPacketPayload.Type<SetDroneCameraPayload>(
             ResourceLocation.fromNamespaceAndPath(
-                "cw_arms_race",
+                "armsrace",
                 "set_drone_camera"
             )
         )

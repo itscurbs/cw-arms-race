@@ -1,4 +1,4 @@
-package com.curbs.cw_arms_race.entity
+package com.curbs.armsrace.entity
 
 import com.julian.createwarfare.effects.server.WaveEffect
 import com.julian.createwarfare.explosions.types.GenericExplosion
@@ -40,7 +40,7 @@ data class DroneInputPayload(
 
     companion object {
         val TYPE = CustomPacketPayload.Type<DroneInputPayload>(
-            ResourceLocation.fromNamespaceAndPath("cw_arms_race", "drone_input")
+            ResourceLocation.fromNamespaceAndPath("armsrace", "drone_input")
         )
 
         val STREAM_CODEC: StreamCodec<ByteBuf, DroneInputPayload> =
@@ -80,7 +80,7 @@ class DroneEntity(
     var ownerId: UUID? = null
 
     companion object {
-        private val LOGGER = LogManager.getLogger("cw_arms_race")
+        private val LOGGER = LogManager.getLogger("armsrace")
     }
 
     private fun onImpact() {

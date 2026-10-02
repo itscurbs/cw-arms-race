@@ -1,7 +1,7 @@
-package com.curbs.cw_arms_race.client
+package com.curbs.armsrace.client
 
-import com.curbs.cw_arms_race.entity.DroneEntity
-import com.curbs.cw_arms_race.entity.DroneGeoModel
+import com.curbs.armsrace.entity.DroneEntity
+import com.curbs.armsrace.entity.DroneGeoModel
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import software.bernie.geckolib.renderer.GeoEntityRenderer
 

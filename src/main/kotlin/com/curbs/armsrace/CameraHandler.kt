@@ -1,6 +1,6 @@
-package com.curbs.cw_arms_race
+package com.curbs.armsrace
 
-import com.curbs.cw_arms_race.entity.DroneEntity
+import com.curbs.armsrace.entity.DroneEntity
 import net.minecraft.client.Minecraft
 import net.neoforged.neoforge.client.event.CalculatePlayerTurnEvent
 import net.neoforged.neoforge.client.event.ClientTickEvent

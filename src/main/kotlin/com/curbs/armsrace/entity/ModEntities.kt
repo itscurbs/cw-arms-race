@@ -1,6 +1,6 @@
-package com.curbs.cw_arms_race.entity
+package com.curbs.armsrace.entity
 
-import com.curbs.cw_arms_race.Cw_arms_race
+import com.curbs.armsrace.CwArmsRace
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
@@ -13,7 +13,7 @@ object ModEntities {
 
     // There is no createEntities() helper - entities use the generic create().
     val REGISTRY: DeferredRegister<EntityType<*>> =
-        DeferredRegister.create(BuiltInRegistries.ENTITY_TYPE, Cw_arms_race.ID)
+        DeferredRegister.create(BuiltInRegistries.ENTITY_TYPE, CwArmsRace.ID)
 
     val FPV_DRONE by REGISTRY.register("fpv_drone") { ->
         EntityType.Builder
@@ -29,6 +29,6 @@ object ModEntities {
 
             // The string here only feeds the data fixer; the real registry name
             // comes from the "fpv_drone" passed to register() above.
-            .build("cw_arms_race:fpv_drone")
+            .build("armsrace:fpv_drone")
     }
 }
