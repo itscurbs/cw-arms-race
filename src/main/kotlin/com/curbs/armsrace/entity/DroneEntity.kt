@@ -226,6 +226,16 @@ class DroneEntity(
      * and battery. Each one is registered with `SynchedEntityData.defineId(...)`
      * and then read/written through `this.entityData`.
      */
+    override fun lerpTo(x: Double, y: Double, z: Double, yRot: Float, xRot: Float, steps: Int) {
+        if (level().isClientSide && Minecraft.getInstance().cameraEntity === this) {
+            if (distanceToSqr(x, y, z) > 1.0) {
+                setPos(x, y, z)
+            }
+            return
+        }
+        super.lerpTo(x, y, z, yRot, xRot, steps)
+    }
+
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
     }
 
