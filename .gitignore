@@ -4,6 +4,8 @@ build/
 
 run/
 
+runs/
+
 .idea/
 
 .kotlin/

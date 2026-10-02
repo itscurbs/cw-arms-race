@@ -3,6 +3,7 @@ package com.curbs.armsrace
 import com.curbs.armsrace.client.DroneRenderer
 import com.curbs.armsrace.entity.DroneEntity
 import com.curbs.armsrace.entity.DroneInputPayload
+import com.curbs.armsrace.entity.DroneStatePayload
 import com.curbs.armsrace.entity.ModEntities
 import com.curbs.armsrace.item.ModCreativeModeTabs
 import com.curbs.armsrace.item.ModItems
@@ -116,9 +117,21 @@ object CwArmsRace {
 
                 val drone = player.level().getEntity(droneId) as? DroneEntity ?: return@enqueueWork
 
-                drone.move = payload.move
-                drone.setYRot(payload.yaw)
-                drone.setXRot(payload.pitch.coerceIn(-90f, 90f))
+                drone.inputQueue.addLast(com.curbs.armsrace.entity.DroneInputEntry(payload.seq, payload.move, payload.yaw, payload.pitch.coerceIn(-90f, 90f), net.minecraft.world.phys.Vec3.ZERO))
+                if (drone.inputQueue.size > 64) {
+                    drone.inputQueue.removeFirst()
+                }
+            }
+        }
+
+        registrar.playToClient(
+            DroneStatePayload.TYPE,
+            DroneStatePayload.STREAM_CODEC
+        ) { payload, context ->
+            context.enqueueWork {
+                val mc = Minecraft.getInstance()
+                val drone = mc.level?.getEntity(payload.droneId) as? DroneEntity ?: return@enqueueWork
+                drone.reconcile(payload.x, payload.y, payload.z, payload.seq)
             }
         }
 

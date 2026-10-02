@@ -1,5 +1,7 @@
 package com.curbs.armsrace.entity
 
+import com.julian.createwarfare.effects.server.ShakeEffect
+import com.julian.createwarfare.effects.server.SoundWaveEffect
 import com.julian.createwarfare.effects.server.WaveEffect
 import com.julian.createwarfare.explosions.types.GenericExplosion
 import io.netty.buffer.ByteBuf
@@ -11,6 +13,8 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.sounds.SoundEvents
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
@@ -32,6 +36,7 @@ data class DroneInputPayload(
     val move: Vec2,
     val yaw: Float,
     val pitch: Float,
+    val seq: Int,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<DroneInputPayload> {
@@ -43,25 +48,71 @@ data class DroneInputPayload(
             ResourceLocation.fromNamespaceAndPath("armsrace", "drone_input")
         )
 
-        val STREAM_CODEC: StreamCodec<ByteBuf, DroneInputPayload> =
-            StreamCodec.composite(
-                ByteBufCodecs.FLOAT,
-                { it.move.x },
-                ByteBufCodecs.FLOAT,
-                { it.move.y },
-                ByteBufCodecs.FLOAT,
-                { it.yaw },
-                ByteBufCodecs.FLOAT,
-                { it.pitch }
-            ) { movementX, movementY, yaw, pitch ->
-                DroneInputPayload(
-                    Vec2(movementX, movementY),
-                    yaw,
-                    pitch,
-                )
+        val STREAM_CODEC: StreamCodec<ByteBuf, DroneInputPayload> = object : StreamCodec<ByteBuf, DroneInputPayload> {
+            override fun encode(buf: ByteBuf, v: DroneInputPayload) {
+                ByteBufCodecs.FLOAT.encode(buf, v.move.x)
+                ByteBufCodecs.FLOAT.encode(buf, v.move.y)
+                ByteBufCodecs.FLOAT.encode(buf, v.yaw)
+                ByteBufCodecs.FLOAT.encode(buf, v.pitch)
+                ByteBufCodecs.VAR_INT.encode(buf, v.seq)
             }
+
+            override fun decode(buf: ByteBuf): DroneInputPayload {
+                val mx = ByteBufCodecs.FLOAT.decode(buf)
+                val my = ByteBufCodecs.FLOAT.decode(buf)
+                val yaw = ByteBufCodecs.FLOAT.decode(buf)
+                val pitch = ByteBufCodecs.FLOAT.decode(buf)
+                val seq = ByteBufCodecs.VAR_INT.decode(buf)
+                return DroneInputPayload(Vec2(mx, my), yaw, pitch, seq)
+            }
+        }
     }
 }
+
+data class DroneStatePayload(
+    val droneId: Int,
+    val seq: Int,
+    val x: Double,
+    val y: Double,
+    val z: Double,
+) : CustomPacketPayload {
+    override fun type(): CustomPacketPayload.Type<DroneStatePayload> {
+        return TYPE
+    }
+
+    companion object {
+        val TYPE = CustomPacketPayload.Type<DroneStatePayload>(
+            ResourceLocation.fromNamespaceAndPath("armsrace", "drone_state")
+        )
+
+        val STREAM_CODEC: StreamCodec<ByteBuf, DroneStatePayload> = object : StreamCodec<ByteBuf, DroneStatePayload> {
+            override fun encode(buf: ByteBuf, v: DroneStatePayload) {
+                ByteBufCodecs.VAR_INT.encode(buf, v.droneId)
+                ByteBufCodecs.VAR_INT.encode(buf, v.seq)
+                ByteBufCodecs.DOUBLE.encode(buf, v.x)
+                ByteBufCodecs.DOUBLE.encode(buf, v.y)
+                ByteBufCodecs.DOUBLE.encode(buf, v.z)
+            }
+
+            override fun decode(buf: ByteBuf): DroneStatePayload {
+                val droneId = ByteBufCodecs.VAR_INT.decode(buf)
+                val seq = ByteBufCodecs.VAR_INT.decode(buf)
+                val x = ByteBufCodecs.DOUBLE.decode(buf)
+                val y = ByteBufCodecs.DOUBLE.decode(buf)
+                val z = ByteBufCodecs.DOUBLE.decode(buf)
+                return DroneStatePayload(droneId, seq, x, y, z)
+            }
+        }
+    }
+}
+
+data class DroneInputEntry(
+    val seq: Int,
+    val move: Vec2,
+    val yaw: Float,
+    val pitch: Float,
+    val pos: Vec3,
+)
 
 /**
  * The FPV drone entity. Behaviour is still a STUB - it does not move yet.
@@ -79,10 +130,15 @@ class DroneEntity(
 
     var ownerId: UUID? = null
 
+    var inputSeq: Int = 0
+    var lastAckSeq: Int = 0
+    val pending: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
+    val inputQueue: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
+
     companion object {
         private val LOGGER = LogManager.getLogger("armsrace")
 
-        const val SPEED = 0.5
+        const val SPEED = 1.0
 
         /**
          * Shared flight model. Pure function so server tick and client
@@ -115,15 +171,50 @@ class DroneEntity(
         }
     }
 
+    fun reconcile(sx: Double, sy: Double, sz: Double, ack: Int) {
+        var ackPos: Vec3? = null
+        for (e in pending) {
+            if (e.seq == ack) {
+                ackPos = e.pos
+                break
+            }
+        }
+        while (pending.isNotEmpty() && pending.first().seq <= ack) {
+            pending.removeFirst()
+        }
+        val base = ackPos ?: return
+        if (pending.isEmpty()) {
+            val dx = sx - x
+            val dy = sy - y
+            val dz = sz - z
+            if (dx * dx + dy * dy + dz * dz < 0.04) return
+            setPos(sx, sy, sz)
+            return
+        }
+        val ex = sx - base.x
+        val ey = sy - base.y
+        val ez = sz - base.z
+        if (ex * ex + ey * ey + ez * ez < 0.04) return
+        setPos(sx, sy, sz)
+        for (i in pending.indices) {
+            val e = pending[i]
+            val v = calcMovement(e.move, e.yaw, e.pitch)
+            if (v.lengthSqr() > 0.0) {
+                deltaMovement = v
+                move(MoverType.SELF, v)
+            }
+            pending[i] = DroneInputEntry(e.seq, e.move, e.yaw, e.pitch, position())
+        }
+    }
+
     private fun onImpact() {
-        LOGGER.info("Drone {} collided with block at {}", uuid, blockPosition())
         val pos = blockPosition()
 
         GenericExplosion.trigger(
             level(),
             blockPosition(),
             128.0F,
-            8.0F,
+            12.0F,
             96.0F,
         )
 
@@ -134,6 +225,24 @@ class DroneEntity(
             12.0F,
             0xffe3b8,
             0.0F,
+        )
+
+        ShakeEffect.start(
+            level() as ServerLevel?,
+            blockPosition(),
+            24.0F,
+            8.0F,
+            20,
+            true,
+        )
+
+        SoundWaveEffect.start(
+            level() as ServerLevel?,
+            blockPosition(),
+            17.15F,
+            24.0F,
+            SoundEvents.GENERIC_EXPLODE.value(),
+            true,
         )
 
 
@@ -183,6 +292,17 @@ class DroneEntity(
 
         if (!level().isClientSide) {
 
+            while (inputQueue.isNotEmpty() && inputQueue.first().seq <= lastAckSeq) {
+                inputQueue.removeFirst()
+            }
+            val next = if (inputQueue.isNotEmpty()) inputQueue.removeFirst() else null
+            if (next != null) {
+                move = next.move
+                setYRot(next.yaw)
+                setXRot(next.pitch.coerceIn(-90f, 90f))
+                lastAckSeq = next.seq
+            }
+
             val velocity = calcMovement(move, yRot, xRot)
 
             if (velocity.lengthSqr() > 0.0) {
@@ -192,6 +312,11 @@ class DroneEntity(
                 if (horizontalCollision || verticalCollision) {
                     onImpact()
                 }
+            }
+
+            val owner = ownerId?.let { (level() as ServerLevel).getPlayerByUUID(it) as? ServerPlayer }
+            if (owner != null) {
+                PacketDistributor.sendToPlayer(owner, DroneStatePayload(id, lastAckSeq, x, y, z))
             }
 
             if (ownerId == null) {
@@ -206,18 +331,27 @@ class DroneEntity(
                 (if (mc.options.keyUp.isDown) 1f else 0f) -
                         (if (mc.options.keyDown.isDown) 1f else 0f),
             )
+            inputSeq++
             val velocity = calcMovement(move, yRot, xRot)
             if (velocity.lengthSqr() > 0.0) {
                 deltaMovement = velocity
                 move(MoverType.SELF, velocity)
             }
+            pending.addLast(DroneInputEntry(inputSeq, move, yRot, xRot, position()))
+            if (pending.size > 40) {
+                pending.removeFirst()
+            }
             PacketDistributor.sendToServer(
                 DroneInputPayload(
                     move,
                     yRot,
-                    xRot
+                    xRot,
+                    inputSeq
                 )
             )
+            if (horizontalCollision || verticalCollision) {
+                discard()
+            }
         }
     }
 
@@ -228,12 +362,16 @@ class DroneEntity(
      */
     override fun lerpTo(x: Double, y: Double, z: Double, yRot: Float, xRot: Float, steps: Int) {
         if (level().isClientSide && Minecraft.getInstance().cameraEntity === this) {
-            if (distanceToSqr(x, y, z) > 1.0) {
-                setPos(x, y, z)
-            }
             return
         }
         super.lerpTo(x, y, z, yRot, xRot, steps)
+    }
+
+    override fun lerpMotion(x: Double, y: Double, z: Double) {
+        if (level().isClientSide && Minecraft.getInstance().cameraEntity === this) {
+            return
+        }
+        super.lerpMotion(x, y, z)
     }
 
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
