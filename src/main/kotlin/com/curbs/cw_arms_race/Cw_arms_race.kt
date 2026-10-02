@@ -70,6 +70,7 @@ object Cw_arms_race {
         NeoForge.EVENT_BUS.addListener(CameraHandler::onClientTick)
         NeoForge.EVENT_BUS.addListener(CameraHandler::onRenderHand)
         NeoForge.EVENT_BUS.addListener(CameraHandler::onCalculateTurn)
+        NeoForge.EVENT_BUS.addListener(CameraHandler::onFramePre)
     }
 
     /**
