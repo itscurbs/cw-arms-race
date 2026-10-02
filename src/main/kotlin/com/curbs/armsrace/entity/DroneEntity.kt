@@ -81,6 +81,38 @@ class DroneEntity(
 
     companion object {
         private val LOGGER = LogManager.getLogger("armsrace")
+
+        const val SPEED = 0.5
+
+        /**
+         * Shared flight model. Pure function so server tick and client
+         * prediction stay identical. Extend here (throttle/drag/etc).
+         */
+        fun calcMovement(move: Vec2, yawDeg: Float, pitchDeg: Float, speed: Double = SPEED): Vec3 {
+            val strafe = -move.x.toDouble()
+            val forward = move.y.toDouble()
+
+            if (strafe == 0.0 && forward == 0.0) return Vec3.ZERO
+
+            val yaw = Math.toRadians(yawDeg.toDouble())
+            val pitch = Math.toRadians(pitchDeg.toDouble())
+
+            val forwardX = -sin(yaw) * cos(pitch)
+            val forwardY = -sin(pitch)
+            val forwardZ = cos(yaw) * cos(pitch)
+
+            val rightX = cos(yaw)
+            val rightZ = sin(yaw)
+
+            val x = forwardX * forward + rightX * strafe
+            val y = forwardY * forward
+            val z = forwardZ * forward + rightZ * strafe
+
+            val movement = Vec3(x, y, z)
+            if (movement.lengthSqr() <= 0.0) return Vec3.ZERO
+
+            return movement.normalize().scale(speed)
+        }
     }
 
     private fun onImpact() {
@@ -151,28 +183,9 @@ class DroneEntity(
 
         if (!level().isClientSide) {
 
-            val strafe = -move.x.toDouble()
-            val forward = move.y.toDouble()
+            val velocity = calcMovement(move, yRot, xRot)
 
-            val yaw = Math.toRadians(yRot.toDouble())
-            val pitch = Math.toRadians(xRot.toDouble())
-
-            val forwardX = -sin(yaw) * cos(pitch)
-            val forwardY = -sin(pitch)
-            val forwardZ = cos(yaw) * cos(pitch)
-
-            val rightX = cos(yaw)
-            val rightZ = sin(yaw)
-
-            val x = forwardX * forward + rightX * strafe
-            val y = forwardY * forward
-            val z = forwardZ * forward + rightZ * strafe
-
-            val movement = Vec3(x, y, z)
-
-            if (movement.lengthSqr() > 0.0) {
-                val velocity = movement.normalize().scale(0.5)
-
+            if (velocity.lengthSqr() > 0.0) {
                 deltaMovement = velocity
                 move(MoverType.SELF, velocity)
 
