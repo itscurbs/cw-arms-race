@@ -70,7 +70,8 @@ class DroneItem(properties: Item.Properties) : Item(properties) {
         val spawnPos = Vec3.atBottomCenterOf(context.clickedPos.above())
 
         val drone = DroneEntity(ModEntities.FPV_DRONE, serverLevel)
-        drone.setPos(spawnPos.x, spawnPos.y, spawnPos.z)
+        drone.setPos(spawnPos.x, spawnPos.y + 0.6, spawnPos.z)
+        drone.simState.velocity = Vec3(0.0, 0.9, 0.0)
 
         drone.ownerId = player.uuid
 

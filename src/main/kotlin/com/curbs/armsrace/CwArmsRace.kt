@@ -131,7 +131,7 @@ object CwArmsRace {
             context.enqueueWork {
                 val mc = Minecraft.getInstance()
                 val drone = mc.level?.getEntity(payload.droneId) as? DroneEntity ?: return@enqueueWork
-                drone.reconcile(payload.x, payload.y, payload.z, payload.seq)
+                drone.reconcile(payload.x, payload.y, payload.z, payload.seq, payload.vx, payload.vy, payload.vz)
             }
         }
 

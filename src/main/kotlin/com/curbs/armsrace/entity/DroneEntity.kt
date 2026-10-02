@@ -29,8 +29,6 @@ import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.animation.AnimatableManager
 import software.bernie.geckolib.util.GeckoLibUtil
 import java.util.*
-import kotlin.math.cos
-import kotlin.math.sin
 
 data class DroneInputPayload(
     val move: Vec2,
@@ -75,7 +73,11 @@ data class DroneStatePayload(
     val x: Double,
     val y: Double,
     val z: Double,
+    val vx: Double = 0.0,
+    val vy: Double = 0.0,
+    val vz: Double = 0.0,
 ) : CustomPacketPayload {
+
     override fun type(): CustomPacketPayload.Type<DroneStatePayload> {
         return TYPE
     }
@@ -92,6 +94,9 @@ data class DroneStatePayload(
                 ByteBufCodecs.DOUBLE.encode(buf, v.x)
                 ByteBufCodecs.DOUBLE.encode(buf, v.y)
                 ByteBufCodecs.DOUBLE.encode(buf, v.z)
+                ByteBufCodecs.DOUBLE.encode(buf, v.vx)
+                ByteBufCodecs.DOUBLE.encode(buf, v.vy)
+                ByteBufCodecs.DOUBLE.encode(buf, v.vz)
             }
 
             override fun decode(buf: ByteBuf): DroneStatePayload {
@@ -100,7 +105,10 @@ data class DroneStatePayload(
                 val x = ByteBufCodecs.DOUBLE.decode(buf)
                 val y = ByteBufCodecs.DOUBLE.decode(buf)
                 val z = ByteBufCodecs.DOUBLE.decode(buf)
-                return DroneStatePayload(droneId, seq, x, y, z)
+                val vx = if (buf.isReadable(8)) ByteBufCodecs.DOUBLE.decode(buf) else 0.0
+                val vy = if (buf.isReadable(8)) ByteBufCodecs.DOUBLE.decode(buf) else 0.0
+                val vz = if (buf.isReadable(8)) ByteBufCodecs.DOUBLE.decode(buf) else 0.0
+                return DroneStatePayload(droneId, seq, x, y, z, vx, vy, vz)
             }
         }
     }
@@ -112,6 +120,7 @@ data class DroneInputEntry(
     val yaw: Float,
     val pitch: Float,
     val pos: Vec3,
+    val vel: Vec3 = Vec3.ZERO,
 )
 
 /**
@@ -134,41 +143,62 @@ class DroneEntity(
     var lastAckSeq: Int = 0
     val pending: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
     val inputQueue: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
+    var simState: DronePhysics.State = DronePhysics.State()
+    private var lastPhysics: DronePhysics = DronePhysics.active
 
     companion object {
         private val LOGGER = LogManager.getLogger("armsrace")
 
         const val SPEED = 1.0
 
+        var physics: DronePhysics
+            get() = DronePhysics.active
+            set(value) {
+                DronePhysics.active = value
+            }
 
         fun calcMovement(move: Vec2, yawDeg: Float, pitchDeg: Float, speed: Double = SPEED): Vec3 {
             val strafe = -move.x.toDouble()
             val forward = move.y.toDouble()
-
             if (strafe == 0.0 && forward == 0.0) return Vec3.ZERO
-
             val yaw = Math.toRadians(yawDeg.toDouble())
             val pitch = Math.toRadians(pitchDeg.toDouble())
-
-            val forwardX = -sin(yaw) * cos(pitch)
-            val forwardY = -sin(pitch)
-            val forwardZ = cos(yaw) * cos(pitch)
-
-            val rightX = cos(yaw)
-            val rightZ = sin(yaw)
-
+            val forwardX = -kotlin.math.sin(yaw) * kotlin.math.cos(pitch)
+            val forwardY = -kotlin.math.sin(pitch)
+            val forwardZ = kotlin.math.cos(yaw) * kotlin.math.cos(pitch)
+            val rightX = kotlin.math.cos(yaw)
+            val rightZ = kotlin.math.sin(yaw)
             val x = forwardX * forward + rightX * strafe
             val y = forwardY * forward
             val z = forwardZ * forward + rightZ * strafe
-
             val movement = Vec3(x, y, z)
             if (movement.lengthSqr() <= 0.0) return Vec3.ZERO
-
             return movement.normalize().scale(speed)
         }
     }
 
-    fun reconcile(sx: Double, sy: Double, sz: Double, ack: Int) {
+    fun groundCushion(): Double {
+        val pos = blockPosition()
+        for (d in 1..4) {
+            val below = pos.below(d)
+            val state = level().getBlockState(below)
+            if (!state.isAir) {
+                val gap = y - (below.y + 1.0)
+                return (1.0 - (gap / 4.0)).coerceIn(0.0, 1.0)
+            }
+        }
+        return 0.0
+    }
+
+    fun stepPhysics(move: Vec2, yawDeg: Float, pitchDeg: Float, speed: Double = SPEED): Vec3 {
+        if (lastPhysics != DronePhysics.active) {
+            simState = DronePhysics.State()
+            lastPhysics = DronePhysics.active
+        }
+        return DronePhysics.active.step(simState, move, yawDeg, pitchDeg, speed, groundCushion())
+    }
+
+    fun reconcile(sx: Double, sy: Double, sz: Double, ack: Int, svx: Double = 0.0, svy: Double = 0.0, svz: Double = 0.0) {
         var ackPos: Vec3? = null
         for (e in pending) {
             if (e.seq == ack) {
@@ -179,28 +209,38 @@ class DroneEntity(
         while (pending.isNotEmpty() && pending.first().seq <= ack) {
             pending.removeFirst()
         }
-        val base = ackPos ?: return
+        val serverVel = Vec3(svx, svy, svz)
         if (pending.isEmpty()) {
             val dx = sx - x
             val dy = sy - y
             val dz = sz - z
-            if (dx * dx + dy * dy + dz * dz < 0.04) return
+            if (dx * dx + dy * dy + dz * dz < 0.04) {
+                if (serverVel.lengthSqr() > 0.0) simState.velocity = serverVel
+                return
+            }
             setPos(sx, sy, sz)
+            simState.velocity = serverVel
+            deltaMovement = serverVel
             return
         }
+        val base = ackPos ?: return
         val ex = sx - base.x
         val ey = sy - base.y
         val ez = sz - base.z
         if (ex * ex + ey * ey + ez * ez < 0.04) return
         setPos(sx, sy, sz)
+        simState.velocity = serverVel
+        if (lastPhysics != DronePhysics.active) lastPhysics = DronePhysics.active
         for (i in pending.indices) {
             val e = pending[i]
-            val v = calcMovement(e.move, e.yaw, e.pitch)
-            if (v.lengthSqr() > 0.0) {
+            val v = DronePhysics.active.step(simState, e.move, e.yaw, e.pitch, SPEED, groundCushion())
+            if (v.lengthSqr() > 1e-9) {
                 deltaMovement = v
                 move(MoverType.SELF, v)
+            } else {
+                deltaMovement = Vec3.ZERO
             }
-            pending[i] = DroneInputEntry(e.seq, e.move, e.yaw, e.pitch, position())
+            pending[i] = DroneInputEntry(e.seq, e.move, e.yaw, e.pitch, position(), simState.velocity)
         }
     }
 
@@ -300,20 +340,30 @@ class DroneEntity(
                 lastAckSeq = next.seq
             }
 
-            val velocity = calcMovement(move, yRot, xRot)
-
-            if (velocity.lengthSqr() > 0.0) {
-                deltaMovement = velocity
+            var velocity = stepPhysics(move, yRot, xRot)
+            val impactSpeed = velocity.length()
+            if (onGround() && velocity.y < 0.0 && velocity.y > -0.55) {
+                velocity = Vec3(velocity.x, 0.0, velocity.z)
+                simState.velocity = Vec3(simState.velocity.x, 0.0, simState.velocity.z)
+            }
+            deltaMovement = velocity
+            if (velocity.lengthSqr() > 1e-9) {
                 move(MoverType.SELF, velocity)
-
                 if (horizontalCollision || verticalCollision) {
-                    onImpact()
+                    if (impactSpeed > 0.65 || fallDistance > 2.5) {
+                        onImpact()
+                    } else if (onGround()) {
+                        simState.velocity = Vec3(simState.velocity.x * 0.5, 0.0, simState.velocity.z * 0.5)
+                    }
                 }
+            } else {
+                move(MoverType.SELF, Vec3.ZERO)
             }
 
             val owner = ownerId?.let { (level() as ServerLevel).getPlayerByUUID(it) as? ServerPlayer }
             if (owner != null) {
-                PacketDistributor.sendToPlayer(owner, DroneStatePayload(id, lastAckSeq, x, y, z))
+                val sv = simState.velocity
+                PacketDistributor.sendToPlayer(owner, DroneStatePayload(id, lastAckSeq, x, y, z, sv.x, sv.y, sv.z))
             }
 
             if (ownerId == null) {
@@ -329,12 +379,19 @@ class DroneEntity(
                         (if (mc.options.keyDown.isDown) 1f else 0f),
             )
             inputSeq++
-            val velocity = calcMovement(move, yRot, xRot)
-            if (velocity.lengthSqr() > 0.0) {
+            var velocity = stepPhysics(move, yRot, xRot)
+            val impactSpeed = velocity.length()
+            if (onGround() && velocity.y < 0.0 && velocity.y > -0.55) {
+                velocity = Vec3(velocity.x, 0.0, velocity.z)
+                simState.velocity = Vec3(simState.velocity.x, 0.0, simState.velocity.z)
+            }
+            if (velocity.lengthSqr() > 1e-9) {
                 deltaMovement = velocity
                 move(MoverType.SELF, velocity)
+            } else {
+                deltaMovement = Vec3.ZERO
             }
-            pending.addLast(DroneInputEntry(inputSeq, move, yRot, xRot, position()))
+            pending.addLast(DroneInputEntry(inputSeq, move, yRot, xRot, position(), simState.velocity))
             if (pending.size > 40) {
                 pending.removeFirst()
             }
@@ -347,7 +404,9 @@ class DroneEntity(
                 )
             )
             if (horizontalCollision || verticalCollision) {
-                discard()
+                if (impactSpeed > 0.65 || fallDistance > 2.5) {
+                    discard()
+                }
             }
         }
     }
@@ -376,9 +435,17 @@ class DroneEntity(
 
     /** Writes our custom data to NBT so it survives a world save. */
     override fun addAdditionalSaveData(tag: CompoundTag) {
+        val v = simState.velocity
+        tag.putDouble("PhysVX", v.x)
+        tag.putDouble("PhysVY", v.y)
+        tag.putDouble("PhysVZ", v.z)
+        tag.putString("Physics", DronePhysics.active.name)
     }
 
     /** Reads back what [addAdditionalSaveData] wrote. */
     override fun readAdditionalSaveData(tag: CompoundTag) {
+        if (tag.contains("PhysVX")) {
+            simState.velocity = Vec3(tag.getDouble("PhysVX"), tag.getDouble("PhysVY"), tag.getDouble("PhysVZ"))
+        }
     }
 }
