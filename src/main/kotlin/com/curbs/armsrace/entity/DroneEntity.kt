@@ -199,8 +199,6 @@ class DroneEntity(
             }
         } else {
             val mc = Minecraft.getInstance()
-            // Only pilot the drone we're actually looking through.
-            // Otherwise every loaded drone spams the server each tick.
             if (mc.cameraEntity !== this) return
             val move = Vec2(
                 (if (mc.options.keyRight.isDown) 1f else 0f) -
@@ -208,8 +206,11 @@ class DroneEntity(
                 (if (mc.options.keyUp.isDown) 1f else 0f) -
                         (if (mc.options.keyDown.isDown) 1f else 0f),
             )
-            // Rotation is applied per-frame in CameraHandler.onCalculateTurn;
-            // here we just send the absolute result so the server converges.
+            val velocity = calcMovement(move, yRot, xRot)
+            if (velocity.lengthSqr() > 0.0) {
+                deltaMovement = velocity
+                move(MoverType.SELF, velocity)
+            }
             PacketDistributor.sendToServer(
                 DroneInputPayload(
                     move,
