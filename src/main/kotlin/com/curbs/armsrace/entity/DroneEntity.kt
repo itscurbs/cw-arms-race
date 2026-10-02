@@ -140,10 +140,7 @@ class DroneEntity(
 
         const val SPEED = 1.0
 
-        /**
-         * Shared flight model. Pure function so server tick and client
-         * prediction stay identical. Extend here (throttle/drag/etc).
-         */
+
         fun calcMovement(move: Vec2, yawDeg: Float, pitchDeg: Float, speed: Double = SPEED): Vec3 {
             val strafe = -move.x.toDouble()
             val forward = move.y.toDouble()
