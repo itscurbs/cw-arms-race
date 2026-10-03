@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.util.Mth
+import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MoverType
@@ -265,7 +266,7 @@ class DroneEntity(
             level() as ServerLevel?,
             blockPosition(),
             17.15F,
-            64.0F,
+            128.0F,
             SoundEvents.GENERIC_EXPLODE.value(),
             true,
         )
@@ -275,12 +276,17 @@ class DroneEntity(
         discard()
     }
 
-    /**
-     * Frame-rate yaw/pitch for the piloted drone.
-     * Takes already-scaled degree deltas (sensitivity applied by caller),
-     * so this stays server-safe. Snaps yRotO/xRotO so the camera uses the
-     * exact value this frame instead of lerping a tick behind.
-     */
+    override fun isPickable(): Boolean = true
+
+    override fun isAttackable(): Boolean = true
+
+    override fun hurt(source: DamageSource, amount: Float): Boolean {
+        if (level().isClientSide || isRemoved) return false
+        if (amount <= 0f) return false
+        onImpact()
+        return true
+    }
+
     fun applyRotation(yawDeltaDeg: Float, pitchDeltaDeg: Float) {
         setYRot(yRot + yawDeltaDeg)
         setXRot(Mth.clamp(xRot + pitchDeltaDeg, -90f, 90f))
