@@ -144,18 +144,11 @@ class DroneEntity(
     val pending: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
     val inputQueue: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
     var simState: DronePhysics.State = DronePhysics.State()
-    private var lastPhysics: DronePhysics = DronePhysics.active
 
     companion object {
         private val LOGGER = LogManager.getLogger("armsrace")
 
         const val SPEED = 1.0
-
-        var physics: DronePhysics
-            get() = DronePhysics.active
-            set(value) {
-                DronePhysics.active = value
-            }
 
         fun calcMovement(move: Vec2, yawDeg: Float, pitchDeg: Float, speed: Double = SPEED): Vec3 {
             val strafe = -move.x.toDouble()
@@ -190,12 +183,8 @@ class DroneEntity(
         return 0.0
     }
 
-    fun stepPhysics(move: Vec2, yawDeg: Float, pitchDeg: Float, speed: Double = SPEED): Vec3 {
-        if (lastPhysics != DronePhysics.active) {
-            simState = DronePhysics.State()
-            lastPhysics = DronePhysics.active
-        }
-        return DronePhysics.active.step(simState, move, yawDeg, pitchDeg, speed, groundCushion())
+    fun stepPhysics(move: Vec2, yawDeg: Float, pitchDeg: Float, speed: Double = DronePhysics.speed): Vec3 {
+        return DronePhysics.step(simState, move, yawDeg, pitchDeg, speed, groundCushion())
     }
 
     fun reconcile(sx: Double, sy: Double, sz: Double, ack: Int, svx: Double = 0.0, svy: Double = 0.0, svz: Double = 0.0) {
@@ -230,10 +219,9 @@ class DroneEntity(
         if (ex * ex + ey * ey + ez * ez < 0.04) return
         setPos(sx, sy, sz)
         simState.velocity = serverVel
-        if (lastPhysics != DronePhysics.active) lastPhysics = DronePhysics.active
         for (i in pending.indices) {
             val e = pending[i]
-            val v = DronePhysics.active.step(simState, e.move, e.yaw, e.pitch, SPEED, groundCushion())
+            val v = DronePhysics.step(simState, e.move, e.yaw, e.pitch, DronePhysics.speed, groundCushion())
             if (v.lengthSqr() > 1e-9) {
                 deltaMovement = v
                 move(MoverType.SELF, v)
@@ -277,7 +265,7 @@ class DroneEntity(
             level() as ServerLevel?,
             blockPosition(),
             17.15F,
-            24.0F,
+            64.0F,
             SoundEvents.GENERIC_EXPLODE.value(),
             true,
         )
@@ -439,7 +427,6 @@ class DroneEntity(
         tag.putDouble("PhysVX", v.x)
         tag.putDouble("PhysVY", v.y)
         tag.putDouble("PhysVZ", v.z)
-        tag.putString("Physics", DronePhysics.active.name)
     }
 
     /** Reads back what [addAdditionalSaveData] wrote. */
