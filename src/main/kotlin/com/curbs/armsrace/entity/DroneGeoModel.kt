@@ -37,8 +37,10 @@ class DroneGeoModel : GeoModel<DroneEntity>() {
         animationState: AnimationState<DroneEntity>
     ) {
         getAnimationProcessor().getBone("bb_main")?.let { bone ->
-            bone.rotX = -animatable.xRot * Math.PI.toFloat() / 180f
-            bone.rotY = -animatable.yRot * Math.PI.toFloat() / 180f
+            animatable.updateVisualTilt()
+            bone.rotX = -(animatable.xRot * animatable.visualPitchFollow + animatable.visualPitchLean) * Math.PI.toFloat() / 180f
+            bone.rotZ = animatable.visualRoll * Math.PI.toFloat() / 180f
+            bone.rotY = 0f
         }
     }
 }

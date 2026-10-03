@@ -145,6 +145,51 @@ class DroneEntity(
     val pending: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
     val inputQueue: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
     var simState: DronePhysics.State = DronePhysics.State()
+    var visualRoll: Float = 0f
+    var visualPitchLean: Float = 0f
+    var visualPitchFollow: Float = 0.3f
+    var visualUpdateNanos: Long = 0L
+
+    var visualPrevYaw: Float = 0f
+    var visualYawInit: Boolean = false
+
+    fun updateVisualTilt() {
+        if (!level().isClientSide) return
+        val now = System.nanoTime()
+        var dt = if (visualUpdateNanos == 0L) 0.05f else (now - visualUpdateNanos).toFloat() / 1_000_000_000f
+        visualUpdateNanos = now
+        dt = dt.coerceIn(0.001f, 0.1f)
+        val v = deltaMovement
+        val yawRad = Math.toRadians(yRot.toDouble())
+        val sinY = kotlin.math.sin(yawRad)
+        val cosY = kotlin.math.cos(yawRad)
+        val localRight = (v.x * cosY + v.z * sinY).toFloat()
+        val localFwd = (-v.x * sinY + v.z * cosY).toFloat()
+        val hSpeed = kotlin.math.sqrt(v.x * v.x + v.z * v.z).toFloat()
+        val vAbs = kotlin.math.abs(v.y).toFloat()
+        var yawRate = 0f
+        if (!visualYawInit) {
+            visualPrevYaw = yRot
+            visualYawInit = true
+        } else {
+            yawRate = Mth.wrapDegrees(yRot - visualPrevYaw) / dt
+            visualPrevYaw = yRot
+        }
+        val velTerm = (localRight * 12f).coerceIn(-20f, 20f)
+        val turnTerm = (-yawRate * 0.12f).coerceIn(-25f, 25f)
+        var targetRoll = (velTerm + turnTerm).coerceIn(-32f, 32f)
+        var targetPitch = (localFwd * 11f - v.y.toFloat() * 3f).coerceIn(-16f, 30f)
+        var targetFollow = 0.3f - 0.2f * (vAbs / (vAbs + hSpeed + 1e-6f)).coerceIn(0f, 1f)
+        if (onGround() && v.lengthSqr() < 0.0025) {
+            targetRoll = 0f
+            targetPitch = 0f
+            targetFollow = 0f
+        }
+        val alpha = 1f - kotlin.math.exp(-10f * dt)
+        visualRoll += (targetRoll - visualRoll) * alpha
+        visualPitchLean += (targetPitch - visualPitchLean) * alpha
+        visualPitchFollow += (targetFollow - visualPitchFollow) * alpha
+    }
 
     companion object {
         private val LOGGER = LogManager.getLogger("armsrace")
