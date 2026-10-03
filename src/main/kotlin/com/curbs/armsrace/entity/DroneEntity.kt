@@ -367,6 +367,10 @@ class DroneEntity(
         super.tick()
 
         if (!level().isClientSide) {
+            if (isInWater()) {
+                onImpact()
+                return
+            }
 
             while (inputQueue.isNotEmpty() && inputQueue.first().seq <= lastAckSeq) {
                 inputQueue.removeFirst()
@@ -411,6 +415,10 @@ class DroneEntity(
         } else {
             val mc = Minecraft.getInstance()
             if (mc.cameraEntity !== this) return
+            if (isInWater()) {
+                discard()
+                return
+            }
             val move = Vec2(
                 (if (mc.options.keyRight.isDown) 1f else 0f) -
                         (if (mc.options.keyLeft.isDown) 1f else 0f),
