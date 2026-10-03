@@ -295,7 +295,9 @@ class DroneEntity(
             2.0F,
             12.0F,
             0xffe3b8,
-            0.0F,
+            1.0F,
+            0,
+            true,
         )
 
         ShakeEffect.start(
