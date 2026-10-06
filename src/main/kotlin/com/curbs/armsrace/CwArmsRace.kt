@@ -1,6 +1,5 @@
 package com.curbs.armsrace
 
-import com.curbs.armsrace.client.DroneRenderer
 import com.curbs.armsrace.entity.DroneEntity
 import com.curbs.armsrace.entity.DroneInputPayload
 import com.curbs.armsrace.entity.DroneStatePayload
@@ -8,9 +7,9 @@ import com.curbs.armsrace.entity.ModEntities
 import com.curbs.armsrace.item.ModCreativeModeTabs
 import com.curbs.armsrace.item.ModItems
 import com.curbs.armsrace.item.SetDroneCameraPayload
+import com.simibubi.create.foundation.data.CreateRegistrate
 import net.minecraft.client.Minecraft
 import net.neoforged.bus.api.SubscribeEvent
-import net.neoforged.neoforge.client.event.EntityRenderersEvent
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
@@ -25,32 +24,27 @@ import org.apache.logging.log4j.Logger
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 import thedarkcolour.kotlinforforge.neoforge.forge.runForDist
 
-/**
- * Main mod class.
- *
- * An example for blocks is in the `blocks` package of this mod.
- */
 @Mod(CwArmsRace.ID)
 @EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
 object CwArmsRace {
     const val ID = "armsrace"
 
-    // the logger for our mod
     val LOGGER: Logger = LogManager.getLogger(ID)
+
+    val REGISTRATE = CreateRegistrate.create(ID)
 
     init {
         LOGGER.log(Level.INFO, "Hello world!")
 
-        ModItems.REGISTRY.register(MOD_BUS)
-        ModEntities.REGISTRY.register(MOD_BUS)
-        ModCreativeModeTabs.REGISTRY.register(MOD_BUS)
+        REGISTRATE.registerEventListeners(MOD_BUS)
+
+        ModCreativeModeTabs.BASE_TAB
+        ModItems.FPV_DRONE
+        ModEntities.FPV_DRONEq;
 
 
         val obj = runForDist(clientTarget = {
             MOD_BUS.addListener(::onClientSetup)
-            // Renderers are client-only. Registering one on a dedicated server
-            // would crash, so this is deliberately inside the client branch.
-            MOD_BUS.addListener(::registerRenderers)
             Minecraft.getInstance()
         }, serverTarget = {
             MOD_BUS.addListener(::onServerSetup)
@@ -60,11 +54,6 @@ object CwArmsRace {
         println(obj)
     }
 
-    /**
-     * This is used for initializing client specific
-     * things such as renderers and keymaps
-     * Fired on the mod specific event bus.
-     */
     private fun onClientSetup(event: FMLClientSetupEvent) {
         LOGGER.log(Level.INFO, "Initializing client...")
 
@@ -74,20 +63,6 @@ object CwArmsRace {
         NeoForge.EVENT_BUS.addListener(CameraHandler::onFramePre)
     }
 
-    /**
-     * Binds a renderer to each of our entity types.
-     *
-     * This is not optional. Minecraft's EntityRenderDispatcher does not null
-     * check unknown entity types, so spawning an entity with no registered
-     * renderer throws an NPE on the render thread and hard-crashes the client.
-     */
-    private fun registerRenderers(event: EntityRenderersEvent.RegisterRenderers) {
-        event.registerEntityRenderer(ModEntities.FPV_DRONE, ::DroneRenderer)
-    }
-
-    /**
-     * Fired on the global Forge bus.
-     */
     private fun onServerSetup(event: FMLDedicatedServerSetupEvent) {
         LOGGER.log(Level.INFO, "Server starting...")
     }
@@ -105,7 +80,6 @@ object CwArmsRace {
             DroneInputPayload.TYPE,
             DroneInputPayload.STREAM_CODEC
         ) { payload, context ->
-            // This runs on the SERVER
             context.enqueueWork {
                 val player = context.player()
 

@@ -1,26 +1,33 @@
 package com.curbs.armsrace.item
 
+import com.curbs.armsrace.client.DroneItemRenderer
 import com.curbs.armsrace.entity.DroneEntity
 import com.curbs.armsrace.entity.ModEntities
-import net.minecraft.client.Minecraft
-import net.minecraft.server.level.ServerLevel
-import net.minecraft.world.InteractionHand
-import net.minecraft.world.InteractionResult
-import net.minecraft.world.InteractionResultHolder
-import net.minecraft.world.entity.player.Player
-import net.minecraft.world.item.Item
-import net.minecraft.world.item.ItemStack
-import net.minecraft.world.item.context.UseOnContext
-import net.minecraft.world.level.Level
-import net.minecraft.world.phys.Vec3
+import com.google.common.base.Suppliers
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.context.UseOnContext
+import net.minecraft.world.phys.Vec3
 import net.neoforged.neoforge.network.PacketDistributor
+import software.bernie.geckolib.animatable.GeoItem
+import software.bernie.geckolib.animatable.SingletonGeoAnimatable
+import software.bernie.geckolib.animatable.client.GeoRenderProvider
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
+import software.bernie.geckolib.animation.AnimatableManager
+import software.bernie.geckolib.renderer.GeoItemRenderer
+import software.bernie.geckolib.util.GeckoLibUtil
+import java.util.function.Consumer
 
+/**
+ * Packet telling the client which drone to use as the camera.
+ */
 data class SetDroneCameraPayload(
     val droneId: Int
 ) : CustomPacketPayload {
@@ -45,48 +52,95 @@ data class SetDroneCameraPayload(
 }
 
 /**
- * The FPV drone item. Right-clicking places a [DroneEntity].
+ * The FPV drone item.
  *
- * Right-clicking a block places the drone on top of that block.
- * Right-clicking air places it in front of the player.
+ * Right-clicking a block places a DroneEntity on top of it.
+ * Right-clicking air is currently not handled here.
  */
-class DroneItem(properties: Item.Properties) : Item(properties) {
+class DroneItem(
+    properties: Item.Properties
+) : Item(properties), GeoItem {
 
-    /**
-     * Called when the player right-clicks a BLOCK while holding this item.
-     *
-     * Note: this runs on BOTH the client and the server, so we must only touch
-     * the world on the server side, otherwise the two sides desync.
-     */
+    private val geoCache: AnimatableInstanceCache =
+        GeckoLibUtil.createInstanceCache(this)
+
+    init {
+        SingletonGeoAnimatable.registerSyncedAnimatable(this)
+    }
+
     override fun useOn(context: UseOnContext): InteractionResult {
-        val player = context.player as? ServerPlayer ?: return InteractionResult.PASS
-        val serverLevel = context.level as? ServerLevel ?: return InteractionResult.PASS
+        val player = context.player as? ServerPlayer
+            ?: return InteractionResult.PASS
+
+        val serverLevel = context.level as? ServerLevel
+            ?: return InteractionResult.PASS
 
         val stack = context.itemInHand
 
-        // atBottomCenterOf gives the bottom-centre of a block, which is exactly
-        // where an entity's feet sit. Using .above() puts it on the top surface
-        // of the clicked block rather than inside it.
-        val spawnPos = Vec3.atBottomCenterOf(context.clickedPos.above())
+        val spawnPos = Vec3.atBottomCenterOf(
+            context.clickedPos.above()
+        )
 
-        val drone = DroneEntity(ModEntities.FPV_DRONE, serverLevel)
-        drone.setPos(spawnPos.x, spawnPos.y + 0.6, spawnPos.z)
-        drone.simState.velocity = Vec3(0.0, 0.9, 0.0)
+        val drone = DroneEntity(
+            ModEntities.FPV_DRONE.get(),
+            serverLevel
+        )
+
+        drone.setPos(
+            spawnPos.x,
+            spawnPos.y + 0.6,
+            spawnPos.z
+        )
+
+        drone.simState.velocity = Vec3(
+            0.0,
+            0.9,
+            0.0
+        )
 
         drone.ownerId = player.uuid
 
-        val pd = player.persistentData
+        player.persistentData.putInt(
+            "Drone",
+            drone.id
+        )
 
-        pd.putInt("Drone", drone.id)
-
-        // Actually put the entity into the world.a
         serverLevel.addFreshEntity(drone)
 
-        PacketDistributor.sendToPlayer(player, SetDroneCameraPayload(drone.id))
+        PacketDistributor.sendToPlayer(
+            player,
+            SetDroneCameraPayload(drone.id)
+        )
 
-        // Use up one drone. Does not shrink the stack in creative mode.
         stack.consume(1, player)
 
         return InteractionResult.SUCCESS
+    }
+
+    override fun registerControllers(
+        controllers: AnimatableManager.ControllerRegistrar
+    ) {
+    }
+
+    override fun getAnimatableInstanceCache(): AnimatableInstanceCache {
+        return geoCache
+    }
+
+    override fun createGeoRenderer(
+        consumer: Consumer<GeoRenderProvider>
+    ) {
+        consumer.accept(
+            object : GeoRenderProvider {
+
+                private val renderer =
+                    Suppliers.memoize<GeoItemRenderer<DroneItem>> {
+                        DroneItemRenderer()
+                    }
+
+                override fun getGeoItemRenderer(): GeoItemRenderer<DroneItem> {
+                    return renderer.get()
+                }
+            }
+        )
     }
 }

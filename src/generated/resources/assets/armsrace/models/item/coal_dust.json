@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "armsrace:item/fpv_drone"
+    "layer0": "armsrace:item/coal_dust"
   }
 }

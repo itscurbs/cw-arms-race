@@ -1,0 +1,5 @@
+// 1.21.1	2026-10-06T17:35:38.046507927	Registrate Provider for armsrace [Registries, Data Maps, Recipes, Advancements, Loot Tables, Tags (blocks), Tags (enchantments), Tags (items), Tags (fluids), Tags (entity_types), generic_server_provider, Blockstates, Item models, Lang (en_us/en_ud), generic_client_provider]
+8e7a9c194779b3fb15a32c7494b185a508ff8cb6 assets/armsrace/lang/en_ud.json
+221808974a7b00e23efffa5cc7eff2145677bdfb assets/armsrace/lang/en_us.json
+78388e37eb15f4f1bb4c4be27d63c08de04d2e36 assets/armsrace/models/item/coal_dust.json
+e0f7b66a84e6588f01abbbce75b1803ffe5d46e2 assets/armsrace/models/item/fpv_drone.json
