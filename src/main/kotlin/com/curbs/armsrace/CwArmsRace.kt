@@ -37,7 +37,7 @@ object CwArmsRace {
 
     val LOGGER: Logger = LogManager.getLogger(ID)
 
-    val REGISTRATE = CreateRegistrate.create(ID)
+    val REGISTRATE: CreateRegistrate = CreateRegistrate.create(ID)
 
     init {
         LOGGER.log(Level.INFO, "Hello world!")

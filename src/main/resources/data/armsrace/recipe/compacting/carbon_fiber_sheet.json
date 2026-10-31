@@ -3,11 +3,12 @@
   "heat_requirement": "heated",
   "ingredients": [
     {
+      "count": 2,
       "item": "armsrace:carbon_fiber_cloth"
     },
     {
       "type": "neoforge:single",
-      "amount": 250,
+      "amount": 500,
       "fluid": "armsrace:epoxy"
     }
   ],

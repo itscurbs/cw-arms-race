@@ -1,7 +1,7 @@
 {
   "type": "armsrace:kiln",
   "heat_requirement": "heated",
-  "processing_time": 400,
+  "processing_time": 200,
   "ingredients": [
     {
       "item": "armsrace:stabilized_fiber"

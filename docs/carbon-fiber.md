@@ -48,8 +48,8 @@ of slime balls and cinder flour, yielding 250 mB per recipe.
 | Carbonize | `armsrace:kiln`, heated | `armsrace:stabilized_fiber` + `armsrace:coke_dust` | `armsrace:carbon_fiber_tow` |
 | Graphitize | `armsrace:kiln`, superheated | `armsrace:carbon_fiber_tow` | `armsrace:graphitized_tow` |
 | Weave | `armsrace:weaving` | `armsrace:carbon_fiber_tow` | `armsrace:carbon_fiber_cloth` |
-| Epoxy | `create:mixing`, heated | `minecraft:slime_ball` + `create:cinder_flour` | 250 mB `armsrace:epoxy` |
-| Sheet | `create:compacting`, heated | `armsrace:carbon_fiber_cloth` + 250 mB epoxy | `armsrace:carbon_fiber_sheet` |
+| Epoxy | `create:mixing`, heated | 1 `minecraft:slime_ball` + 2 `create:cinder_flour` | 250 mB `armsrace:epoxy` |
+| Sheet | `create:compacting`, heated | 2 `armsrace:carbon_fiber_cloth` + 500 mB epoxy | `armsrace:carbon_fiber_sheet` |
 
 ## Kiln recipe format
 
@@ -72,12 +72,12 @@ Heat levels reuse Create's `HeatCondition`: `heated`, `superheated`.
 
 ## Numbers
 
-- Distill: 200 ticks, 1 pitch + 2 coke
-- Extrude: 1 pitch to 1 fiber
+- Distill: 200 ticks, 2 coal dust to 1 pitch + 2 coke
+- Extrude: 1 pitch to 2 fiber
 - Stabilize: 100 ticks
 - Carbonize: 400 ticks, consumes 1 coke per item
 - Net: 1 coal dust becomes 1 tow plus 1 spare coke for the Blaze Burners
-- Drone frame: 2 sheets, 1 sheet is 1 cloth, cloth is 4 tow
+- Drone frame: 2 sheets, 1 sheet is 2 cloth, cloth is 4 tow (32 coal per sheet)
 
 ## Verified facts
 

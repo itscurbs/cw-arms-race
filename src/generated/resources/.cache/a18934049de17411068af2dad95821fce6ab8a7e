@@ -1,13 +1,14 @@
-// 1.21.1	2026-10-31T11:21:25.922060338	Registrate Provider for armsrace [Registries, Data Maps, Recipes, Advancements, Loot Tables, Tags (blocks), Tags (enchantments), Tags (items), Tags (fluids), Tags (entity_types), generic_server_provider, Blockstates, Item models, Lang (en_us/en_ud), generic_client_provider]
+// 1.21.1	2026-10-31T15:20:22.983705337	Registrate Provider for armsrace [Registries, Data Maps, Recipes, Advancements, Loot Tables, Tags (blocks), Tags (enchantments), Tags (items), Tags (fluids), Tags (entity_types), generic_server_provider, Blockstates, Item models, Lang (en_us/en_ud), generic_client_provider]
 38fcf835ef970aae1126aec8368fe6d876e8448f assets/armsrace/blockstates/epoxy.json
 81a6421f8b566fb439ff16dcf122196e939e1c5e assets/armsrace/blockstates/kiln.json
 9b2baf25a059f8004cb7530082d34e2df8670a14 assets/armsrace/blockstates/weaver.json
-9caa27707dc63de39b5d50ab5ea359e564300193 assets/armsrace/lang/en_ud.json
-de3ab979b9202eb621eda6cd69128e3731122883 assets/armsrace/lang/en_us.json
-f8a5203ec0e09050b7596d7c14a31e41e8c0c9ba assets/armsrace/models/block/epoxy.json
+42e2d9656a24923e0dfffbf0cfdbfad2d1aa0f38 assets/armsrace/lang/en_ud.json
+74a37c422f0d3753b65d0ab981ff868c27f1bc4f assets/armsrace/lang/en_us.json
+bd57c4d69e59965144318897e51ff4bf220e42cc assets/armsrace/models/block/epoxy.json
 d1c0504a159e3bb50b1865d6f478c905a739e629 assets/armsrace/models/block/kiln.json
 cb415482052b001b2a52818275072d0b94c475b5 assets/armsrace/models/block/weaver.json
 bc6a1cdbe712fe9b6e436bc929a457cb443fd829 assets/armsrace/models/item/carbon_fiber_cloth.json
+c405f5b9aa98f654a98064cbb3d76071a7e11e7d assets/armsrace/models/item/carbon_fiber_sheet.json
 1b1fc0229e7e455055d5b949c5832a02168df6ae assets/armsrace/models/item/carbon_fiber_tow.json
 78388e37eb15f4f1bb4c4be27d63c08de04d2e36 assets/armsrace/models/item/coal_dust.json
 e9bd4d6accc34de1810627ac8ea8b97cbe4bf9f5 assets/armsrace/models/item/coal_pitch.json

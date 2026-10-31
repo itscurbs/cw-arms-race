@@ -3,6 +3,7 @@
   "processing_time": 100,
   "ingredients": [
     {
+      "count": 4,
       "item": "armsrace:carbon_fiber_tow"
     }
   ],

@@ -4,6 +4,7 @@
   "processing_time": 200,
   "ingredients": [
     {
+      "count": 2,
       "item": "armsrace:coal_dust"
     }
   ],
