@@ -1,8 +1,11 @@
 {
+  "block.armsrace.epoxy": "Epoxy",
   "block.armsrace.kiln": "Kiln",
   "block.armsrace.weaver": "Weaver",
   "entity.armsrace.fpv_drone": "FPV Drone",
+  "fluid.armsrace.epoxy": "Epoxy",
   "item.armsrace.carbon_fiber_cloth": "Carbon Fiber Cloth",
+  "item.armsrace.carbon_fiber_sheet": "Carbon Fiber Sheet",
   "item.armsrace.carbon_fiber_tow": "Carbon Fiber Tow",
   "item.armsrace.coal_dust": "Coal Dust",
   "item.armsrace.coal_pitch": "Coal Pitch",

@@ -1,0 +1,19 @@
+{
+  "type": "create:compacting",
+  "heat_requirement": "heated",
+  "ingredients": [
+    {
+      "item": "armsrace:carbon_fiber_cloth"
+    },
+    {
+      "type": "neoforge:single",
+      "amount": 250,
+      "fluid": "armsrace:epoxy"
+    }
+  ],
+  "results": [
+    {
+      "id": "armsrace:carbon_fiber_sheet"
+    }
+  ]
+}

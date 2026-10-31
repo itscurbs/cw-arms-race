@@ -6,6 +6,7 @@ import com.curbs.armsrace.entity.DroneEntity
 import com.curbs.armsrace.entity.DroneInputPayload
 import com.curbs.armsrace.entity.DroneStatePayload
 import com.curbs.armsrace.entity.ModEntities
+import com.curbs.armsrace.fluid.ModFluids
 import com.curbs.armsrace.item.ModCreativeModeTabs
 import com.curbs.armsrace.item.ModItems
 import com.curbs.armsrace.item.SetDroneCameraPayload
@@ -45,6 +46,7 @@ object CwArmsRace {
 
         ModCreativeModeTabs.BASE_TAB
         ModItems.FPV_DRONE
+        ModFluids.EPOXY
         ModEntities.FPV_DRONE;
         ModBlocks.KILN
         ModBlocks.WEAVER

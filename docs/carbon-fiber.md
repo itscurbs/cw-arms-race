@@ -1,6 +1,6 @@
 # Carbon Fiber Production
 
-Design notes for the carbon fiber chain. Nothing here is implemented yet except the coal crushing recipe.
+Design notes for the carbon fiber chain. The chain through carbon-fiber sheet production is implemented.
 
 ## Concept
 
@@ -22,7 +22,8 @@ Carbon Fiber Cloth + Epoxy ──[Basin + Press + Heat]──> Carbon Fiber Shee
 Carbon Fiber Sheet ×2 ──[Crafting]──> Drone Frame
 ```
 
-Only one fluid: epoxy. No prepreg step, no tar fluid.
+Only one fluid: epoxy. No prepreg step, no tar fluid. Epoxy is produced by heated mixing
+of slime balls and cinder flour, yielding 250 mB per recipe.
 
 ## Machines
 

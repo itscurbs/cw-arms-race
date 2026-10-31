@@ -1,8 +1,11 @@
 {
+  "block.armsrace.epoxy": "ʎxodƎ",
   "block.armsrace.kiln": "uןıʞ",
   "block.armsrace.weaver": "ɹǝʌɐǝM",
   "entity.armsrace.fpv_drone": "ǝuoɹᗡ ΛԀℲ",
+  "fluid.armsrace.epoxy": "ʎxodƎ",
   "item.armsrace.carbon_fiber_cloth": "ɥʇoןƆ ɹǝqıℲ uoqɹɐƆ",
+  "item.armsrace.carbon_fiber_sheet": "ʇǝǝɥS ɹǝqıℲ uoqɹɐƆ",
   "item.armsrace.carbon_fiber_tow": "ʍo⟘ ɹǝqıℲ uoqɹɐƆ",
   "item.armsrace.coal_dust": "ʇsnᗡ ןɐoƆ",
   "item.armsrace.coal_pitch": "ɥɔʇıԀ ןɐoƆ",

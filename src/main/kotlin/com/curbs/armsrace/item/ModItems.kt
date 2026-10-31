@@ -46,4 +46,9 @@ object ModItems {
         .item("carbon_fiber_cloth") { Item(Item.Properties()) }
         .lang("Carbon Fiber Cloth")
         .register()
+
+    val CARBON_FIBER_SHEET: ItemEntry<Item> = CwArmsRace.REGISTRATE
+        .item("carbon_fiber_sheet") { Item(Item.Properties()) }
+        .lang("Carbon Fiber Sheet")
+        .register()
 }
