@@ -12,9 +12,9 @@ class DroneItemRenderer : GeoItemRenderer<DroneItem> {
     constructor() : super(DroneItemGeoModel())
 
     private companion object {
-        const val CENTER_X = 0f
-        const val CENTER_Y = 0.094f
-        const val CENTER_Z = -0.031f
+        const val MODEL_CENTER_X = 0f
+        const val MODEL_CENTER_Y = 1.5f / 16f
+        const val MODEL_CENTER_Z = -0.45943144f / 16f
     }
 
     override fun renderByItem(
@@ -29,10 +29,10 @@ class DroneItemRenderer : GeoItemRenderer<DroneItem> {
 
         when (displayContext) {
             ItemDisplayContext.GUI -> {
-                poseStack.translate(0f, -0.085f, 0.028f)
+                poseStack.translate(0f, -MODEL_CENTER_Y, -MODEL_CENTER_Z)
                 poseStack.scale(0.9f, 0.9f, 0.9f)
-                poseStack.rotateAround(Quaternionf().rotationY(Math.toRadians(45.0).toFloat()), CENTER_X, CENTER_Y, CENTER_Z)
-                poseStack.rotateAround(Quaternionf().rotationX(Math.toRadians(25.0).toFloat()), CENTER_X, CENTER_Y, CENTER_Z)
+                poseStack.rotateAround(Quaternionf().rotationY(Math.toRadians(45.0).toFloat()), MODEL_CENTER_X, MODEL_CENTER_Y, MODEL_CENTER_Z)
+                poseStack.rotateAround(Quaternionf().rotationX(Math.toRadians(25.0).toFloat()), MODEL_CENTER_X, MODEL_CENTER_Y, MODEL_CENTER_Z)
             }
             ItemDisplayContext.GROUND -> {
                 poseStack.scale(0.9f, 0.9f, 0.9f)
@@ -40,7 +40,7 @@ class DroneItemRenderer : GeoItemRenderer<DroneItem> {
             ItemDisplayContext.FIXED -> {
                 poseStack.translate(0f, -0.103f, 0.034f)
                 poseStack.scale(1.1f, 1.1f, 1.1f)
-                poseStack.rotateAround(Quaternionf().rotationX(Math.toRadians(65.0).toFloat()), CENTER_X, CENTER_Y, CENTER_Z)
+                poseStack.rotateAround(Quaternionf().rotationX(Math.toRadians(65.0).toFloat()), MODEL_CENTER_X, MODEL_CENTER_Y, MODEL_CENTER_Z)
             }
             ItemDisplayContext.FIRST_PERSON_LEFT_HAND,
             ItemDisplayContext.FIRST_PERSON_RIGHT_HAND -> {
