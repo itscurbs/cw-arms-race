@@ -1,6 +1,14 @@
 {
+  "block.armsrace.kiln": "uןıʞ",
+  "block.armsrace.weaver": "ɹǝʌɐǝM",
   "entity.armsrace.fpv_drone": "ǝuoɹᗡ ΛԀℲ",
+  "item.armsrace.carbon_fiber_cloth": "ɥʇoןƆ ɹǝqıℲ uoqɹɐƆ",
+  "item.armsrace.carbon_fiber_tow": "ʍo⟘ ɹǝqıℲ uoqɹɐƆ",
   "item.armsrace.coal_dust": "ʇsnᗡ ןɐoƆ",
+  "item.armsrace.coal_pitch": "ɥɔʇıԀ ןɐoƆ",
+  "item.armsrace.coke_dust": "ʇsnᗡ ǝʞoƆ",
   "item.armsrace.fpv_drone": "ǝuoɹᗡ ΛԀℲ",
+  "item.armsrace.pitch_fiber": "ɹǝqıℲ ɥɔʇıԀ",
+  "item.armsrace.stabilized_fiber": "ɹǝqıℲ pǝzıןıqɐʇS",
   "itemGroup.armsrace.base_tab": "qɐ⟘ ǝsɐᗺ"
 }

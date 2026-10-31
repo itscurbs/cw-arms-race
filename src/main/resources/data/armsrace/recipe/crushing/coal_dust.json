@@ -1,0 +1,14 @@
+{
+  "type": "create:crushing",
+  "ingredients": [
+    {
+      "item": "minecraft:coal"
+    }
+  ],
+  "processing_time": 200,
+  "results": [
+    {
+      "id": "armsrace:coal_dust"
+    }
+  ]
+}

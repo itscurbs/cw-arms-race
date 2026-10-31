@@ -1,0 +1,19 @@
+{
+  "type": "armsrace:kiln",
+  "heat_requirement": "heated",
+  "processing_time": 200,
+  "ingredients": [
+    {
+      "item": "armsrace:coal_dust"
+    }
+  ],
+  "results": [
+    {
+      "id": "armsrace:coal_pitch"
+    },
+    {
+      "count": 2,
+      "id": "armsrace:coke_dust"
+    }
+  ]
+}

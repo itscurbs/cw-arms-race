@@ -1,0 +1,14 @@
+{
+  "type": "armsrace:weaving",
+  "processing_time": 100,
+  "ingredients": [
+    {
+      "item": "armsrace:carbon_fiber_tow"
+    }
+  ],
+  "results": [
+    {
+      "id": "armsrace:carbon_fiber_cloth"
+    }
+  ]
+}

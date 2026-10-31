@@ -1,0 +1,18 @@
+{
+  "type": "armsrace:kiln",
+  "heat_requirement": "heated",
+  "processing_time": 400,
+  "ingredients": [
+    {
+      "item": "armsrace:stabilized_fiber"
+    },
+    {
+      "item": "armsrace:coke_dust"
+    }
+  ],
+  "results": [
+    {
+      "id": "armsrace:carbon_fiber_tow"
+    }
+  ]
+}

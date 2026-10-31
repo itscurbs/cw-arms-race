@@ -1,5 +1,7 @@
 package com.curbs.armsrace
 
+import com.curbs.armsrace.block.ModBlockEntities
+import com.curbs.armsrace.block.ModBlocks
 import com.curbs.armsrace.entity.DroneEntity
 import com.curbs.armsrace.entity.DroneInputPayload
 import com.curbs.armsrace.entity.DroneStatePayload
@@ -7,6 +9,7 @@ import com.curbs.armsrace.entity.ModEntities
 import com.curbs.armsrace.item.ModCreativeModeTabs
 import com.curbs.armsrace.item.ModItems
 import com.curbs.armsrace.item.SetDroneCameraPayload
+import com.curbs.armsrace.recipe.ModRecipes
 import com.simibubi.create.foundation.data.CreateRegistrate
 import net.minecraft.client.Minecraft
 import net.neoforged.bus.api.SubscribeEvent
@@ -16,6 +19,8 @@ import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent
 import net.neoforged.neoforge.client.event.ClientTickEvent
+import net.neoforged.neoforge.capabilities.Capabilities
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import org.apache.logging.log4j.Level
@@ -40,7 +45,12 @@ object CwArmsRace {
 
         ModCreativeModeTabs.BASE_TAB
         ModItems.FPV_DRONE
-        ModEntities.FPV_DRONEq;
+        ModEntities.FPV_DRONE;
+        ModBlocks.KILN
+        ModBlocks.WEAVER
+        ModBlockEntities.KILN
+        ModBlockEntities.WEAVER
+        ModRecipes.register()
 
 
         val obj = runForDist(clientTarget = {
@@ -70,6 +80,19 @@ object CwArmsRace {
     @SubscribeEvent
     fun onCommonSetup(event: FMLCommonSetupEvent) {
         LOGGER.log(Level.INFO, "Hello! This is working!")
+    }
+
+    @SubscribeEvent
+    fun registerCapabilities(event: RegisterCapabilitiesEvent) {
+        event.registerBlockEntity(
+            Capabilities.ItemHandler.BLOCK,
+            ModBlockEntities.KILN.get()
+        ) { be, _ -> be.capability }
+
+        event.registerBlockEntity(
+            Capabilities.ItemHandler.BLOCK,
+            ModBlockEntities.WEAVER.get()
+        ) { be, _ -> be.capability }
     }
 
     @SubscribeEvent

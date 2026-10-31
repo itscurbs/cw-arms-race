@@ -1,0 +1,13 @@
+{
+  "type": "create:pressing",
+  "ingredients": [
+    {
+      "item": "armsrace:coal_pitch"
+    }
+  ],
+  "results": [
+    {
+      "id": "armsrace:pitch_fiber"
+    }
+  ]
+}

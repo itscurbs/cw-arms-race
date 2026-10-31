@@ -1,5 +1,19 @@
-// 1.21.1	2026-10-06T17:35:38.046507927	Registrate Provider for armsrace [Registries, Data Maps, Recipes, Advancements, Loot Tables, Tags (blocks), Tags (enchantments), Tags (items), Tags (fluids), Tags (entity_types), generic_server_provider, Blockstates, Item models, Lang (en_us/en_ud), generic_client_provider]
-8e7a9c194779b3fb15a32c7494b185a508ff8cb6 assets/armsrace/lang/en_ud.json
-221808974a7b00e23efffa5cc7eff2145677bdfb assets/armsrace/lang/en_us.json
+// 1.21.1	2026-10-30T21:25:43.585984506	Registrate Provider for armsrace [Registries, Data Maps, Recipes, Advancements, Loot Tables, Tags (blocks), Tags (enchantments), Tags (items), Tags (fluids), Tags (entity_types), generic_server_provider, Blockstates, Item models, Lang (en_us/en_ud), generic_client_provider]
+81a6421f8b566fb439ff16dcf122196e939e1c5e assets/armsrace/blockstates/kiln.json
+9b2baf25a059f8004cb7530082d34e2df8670a14 assets/armsrace/blockstates/weaver.json
+87b136c2c93be6fb6d19084d9b6299019cc17f0c assets/armsrace/lang/en_ud.json
+b85598afef50f106b307018d0ef7b996812e604c assets/armsrace/lang/en_us.json
+d1c0504a159e3bb50b1865d6f478c905a739e629 assets/armsrace/models/block/kiln.json
+cb415482052b001b2a52818275072d0b94c475b5 assets/armsrace/models/block/weaver.json
+bc6a1cdbe712fe9b6e436bc929a457cb443fd829 assets/armsrace/models/item/carbon_fiber_cloth.json
+1b1fc0229e7e455055d5b949c5832a02168df6ae assets/armsrace/models/item/carbon_fiber_tow.json
 78388e37eb15f4f1bb4c4be27d63c08de04d2e36 assets/armsrace/models/item/coal_dust.json
+e9bd4d6accc34de1810627ac8ea8b97cbe4bf9f5 assets/armsrace/models/item/coal_pitch.json
+80b6dfc91bc45c61f3448816fcbb2735e1f25a42 assets/armsrace/models/item/coke_dust.json
 e0f7b66a84e6588f01abbbce75b1803ffe5d46e2 assets/armsrace/models/item/fpv_drone.json
+71d69bab424806dcd3ab92171693de1c3bbab2b6 assets/armsrace/models/item/kiln.json
+8dcfd6271118cc301a3a1b8270aa3de9c05e68ed assets/armsrace/models/item/pitch_fiber.json
+62ff25d3f2b1fad17d934c400f4198411057a1ac assets/armsrace/models/item/stabilized_fiber.json
+496352cb6330e939adef40e302c8abeb116975c3 assets/armsrace/models/item/weaver.json
+c036862fe4e51c555f4626d6acc27105c5fe96a5 data/armsrace/loot_table/blocks/kiln.json
+a20fd89929e277549d6b48261503fa0229bd3688 data/armsrace/loot_table/blocks/weaver.json

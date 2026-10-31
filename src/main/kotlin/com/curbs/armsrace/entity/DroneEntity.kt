@@ -386,7 +386,10 @@ class DroneEntity(
             }
 
             var velocity = stepPhysics(move, yRot, xRot)
+            val horizontalImpact = kotlin.math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
+            val upwardImpact = velocity.y
             val impactSpeed = velocity.length()
+            val driving = move.x * move.x + move.y * move.y > 0.01f
             if (onGround() && velocity.y < 0.0 && velocity.y > -0.55) {
                 velocity = Vec3(velocity.x, 0.0, velocity.z)
                 simState.velocity = Vec3(simState.velocity.x, 0.0, simState.velocity.z)
@@ -394,15 +397,35 @@ class DroneEntity(
             deltaMovement = velocity
             if (velocity.lengthSqr() > 1e-9) {
                 move(MoverType.SELF, velocity)
-                if (horizontalCollision || verticalCollision) {
-                    if (impactSpeed > 0.65 || fallDistance > 2.5) {
+                if (horizontalCollision) {
+                    if (horizontalImpact > 0.65) {
                         onImpact()
-                    } else if (onGround()) {
-                        simState.velocity = Vec3(simState.velocity.x * 0.5, 0.0, simState.velocity.z * 0.5)
+                        return
+                    } else {
+                        simState.velocity = Vec3(simState.velocity.x * 0.3, simState.velocity.y, simState.velocity.z * 0.3)
                     }
+                }
+                if (verticalCollision && !onGround()) {
+                    if (upwardImpact > 0.65) {
+                        onImpact()
+                        return
+                    } else {
+                        simState.velocity = Vec3(simState.velocity.x, 0.0, simState.velocity.z)
+                    }
+                }
+                if (onGround()) {
+                    if (driving && velocity.y < -0.25 && impactSpeed > 0.65) {
+                        onImpact()
+                        return
+                    }
+                    simState.velocity = Vec3(simState.velocity.x * 0.5, 0.0, simState.velocity.z * 0.5)
+                    fallDistance = 0f
                 }
             } else {
                 move(MoverType.SELF, Vec3.ZERO)
+                if (onGround()) {
+                    fallDistance = 0f
+                }
             }
 
             val owner = ownerId?.let { (level() as ServerLevel).getPlayerByUUID(it) as? ServerPlayer }
@@ -429,7 +452,10 @@ class DroneEntity(
             )
             inputSeq++
             var velocity = stepPhysics(move, yRot, xRot)
+            val horizontalImpact = kotlin.math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
+            val upwardImpact = velocity.y
             val impactSpeed = velocity.length()
+            val driving = move.x * move.x + move.y * move.y > 0.01f
             if (onGround() && velocity.y < 0.0 && velocity.y > -0.55) {
                 velocity = Vec3(velocity.x, 0.0, velocity.z)
                 simState.velocity = Vec3(simState.velocity.x, 0.0, simState.velocity.z)
@@ -439,6 +465,16 @@ class DroneEntity(
                 move(MoverType.SELF, velocity)
             } else {
                 deltaMovement = Vec3.ZERO
+            }
+            if (horizontalCollision && horizontalImpact <= 0.65) {
+                simState.velocity = Vec3(simState.velocity.x * 0.3, simState.velocity.y, simState.velocity.z * 0.3)
+            }
+            if (verticalCollision && !onGround() && upwardImpact <= 0.65) {
+                simState.velocity = Vec3(simState.velocity.x, 0.0, simState.velocity.z)
+            }
+            if (onGround()) {
+                simState.velocity = Vec3(simState.velocity.x * 0.5, 0.0, simState.velocity.z * 0.5)
+                fallDistance = 0f
             }
             pending.addLast(DroneInputEntry(inputSeq, move, yRot, xRot, position(), simState.velocity))
             if (pending.size > 40) {
@@ -452,10 +488,12 @@ class DroneEntity(
                     inputSeq
                 )
             )
-            if (horizontalCollision || verticalCollision) {
-                if (impactSpeed > 0.65 || fallDistance > 2.5) {
-                    discard()
-                }
+            if (horizontalCollision && horizontalImpact > 0.65) {
+                discard()
+            } else if (verticalCollision && !onGround() && upwardImpact > 0.65) {
+                discard()
+            } else if (onGround() && driving && velocity.y < -0.25 && impactSpeed > 0.65) {
+                discard()
             }
         }
     }
