@@ -1,7 +1,16 @@
 {
   "variants": {
-    "": {
+    "active=false,inner=false": {
       "model": "armsrace:block/weaver"
+    },
+    "active=false,inner=true": {
+      "model": "armsrace:block/weaver_inner"
+    },
+    "active=true,inner=false": {
+      "model": "armsrace:block/weaver"
+    },
+    "active=true,inner=true": {
+      "model": "armsrace:block/weaver_spooled"
     }
   }
 }

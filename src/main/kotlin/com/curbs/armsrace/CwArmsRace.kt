@@ -2,6 +2,8 @@ package com.curbs.armsrace
 
 import com.curbs.armsrace.block.ModBlockEntities
 import com.curbs.armsrace.block.ModBlocks
+import com.curbs.armsrace.client.KilnRenderer
+import com.curbs.armsrace.client.WeaverRenderer
 import com.curbs.armsrace.entity.DroneEntity
 import com.curbs.armsrace.entity.DroneInputPayload
 import com.curbs.armsrace.entity.DroneStatePayload
@@ -20,6 +22,7 @@ import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent
 import net.neoforged.neoforge.client.event.ClientTickEvent
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers
 import net.neoforged.neoforge.capabilities.Capabilities
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent
 import net.neoforged.neoforge.common.NeoForge
@@ -68,6 +71,10 @@ object CwArmsRace {
 
     private fun onClientSetup(event: FMLClientSetupEvent) {
         LOGGER.log(Level.INFO, "Initializing client...")
+        event.enqueueWork {
+            BlockEntityRenderers.register(ModBlockEntities.KILN.get(), ::KilnRenderer)
+            BlockEntityRenderers.register(ModBlockEntities.WEAVER.get(), ::WeaverRenderer)
+        }
 
         NeoForge.EVENT_BUS.addListener(CameraHandler::onClientTick)
         NeoForge.EVENT_BUS.addListener(CameraHandler::onRenderHand)
@@ -146,6 +153,6 @@ object CwArmsRace {
                     mc.cameraEntity = drone
                 }
             }
-;        }
+        }
     }
 }

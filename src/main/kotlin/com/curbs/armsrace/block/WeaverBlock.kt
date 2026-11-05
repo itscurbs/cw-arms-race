@@ -7,13 +7,31 @@ import net.minecraft.core.Direction
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.BooleanProperty
 
 class WeaverBlock(properties: Properties) : KineticBlock(properties), IBE<WeaverBlockEntity> {
+    companion object {
+        val ACTIVE: BooleanProperty = BooleanProperty.create("active")
+        val INNER: BooleanProperty = BooleanProperty.create("inner")
+    }
+
+    init {
+        registerDefaultState(
+            stateDefinition.any()
+                .setValue(ACTIVE, false)
+                .setValue(INNER, false)
+        )
+    }
+
+    override fun createBlockStateDefinition(builder: StateDefinition.Builder<net.minecraft.world.level.block.Block, BlockState>) {
+        builder.add(ACTIVE, INNER)
+    }
 
     override fun getRotationAxis(state: BlockState): Direction.Axis = Direction.Axis.Y
 
     override fun hasShaftTowards(world: LevelReader, pos: BlockPos, state: BlockState, face: Direction): Boolean {
-        return face == Direction.DOWN
+        return face == Direction.UP || face == Direction.DOWN
     }
 
     override fun getBlockEntityClass(): Class<WeaverBlockEntity> = WeaverBlockEntity::class.java

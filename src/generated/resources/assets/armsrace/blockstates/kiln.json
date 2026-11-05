@@ -1,7 +1,16 @@
 {
   "variants": {
-    "": {
+    "active=false,inner=false": {
       "model": "armsrace:block/kiln"
+    },
+    "active=false,inner=true": {
+      "model": "armsrace:block/kiln_inner"
+    },
+    "active=true,inner=false": {
+      "model": "armsrace:block/kiln"
+    },
+    "active=true,inner=true": {
+      "model": "armsrace:block/kiln_hot"
     }
   }
 }

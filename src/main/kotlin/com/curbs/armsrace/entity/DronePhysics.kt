@@ -33,9 +33,12 @@ object DronePhysics {
         val gravityBase = 0.185 + (0.30 - 0.185) * h
         val hSpeed = sqrt(v.x * v.x + v.z * v.z)
         var lift = gravityBase * tilt * hover
+
         if (hSpeed > 0.9) lift += 0.05 * ((hSpeed - 0.9).coerceAtMost(1.6) / 1.6) * tilt
         if (v.y < 0.0 && groundCushion > 0.0) lift += (0.16 + (0.12 - 0.16) * h) * groundCushion
+
         val gravity = -gravityBase + lift
+
         if (mag < dead) {
             v = v.add(0.0, gravity, 0.0)
             val hDamp = 0.76 + (1.0 - hover) * 0.15 + h * 0.06
@@ -45,6 +48,7 @@ object DronePhysics {
             state.velocity = v
             return v
         }
+
         val k = (mag * mag).coerceAtMost(1.0) / mag
         val strafeAuthority = 1.0 - h * 0.45
         val str = rawStrafe * k * strafeAuthority
@@ -61,11 +65,15 @@ object DronePhysics {
             v.y + (desY - v.y) * vRate + gravity,
             v.z + (desZ - v.z) * hRate
         )
+
         v = v.scale(1.0 / (1.0 + (0.055 + (0.018 - 0.055) * h) * v.length()))
         val maxSpeed = (2.9 + (2.3 - 2.9) * h) * speed.coerceIn(0.4, 2.0)
+
         if (v.lengthSqr() > maxSpeed * maxSpeed) v = v.normalize().scale(maxSpeed)
         if (v.lengthSqr() < 1e-6) v = Vec3.ZERO
+
         state.velocity = v
+
         return v
     }
 }

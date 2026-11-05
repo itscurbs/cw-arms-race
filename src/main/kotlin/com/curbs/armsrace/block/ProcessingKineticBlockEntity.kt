@@ -33,6 +33,8 @@ abstract class ProcessingKineticBlockEntity(
     protected var timer = 0
     protected var lastRecipe: SimpleProcessingRecipe? = null
 
+    fun isProcessing(): Boolean = timer > 0
+
     protected abstract fun findRecipe(): SimpleProcessingRecipe?
 
     protected open fun canProcess(recipe: SimpleProcessingRecipe): Boolean = true

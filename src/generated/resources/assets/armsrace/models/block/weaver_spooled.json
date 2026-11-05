@@ -1,0 +1,13 @@
+{
+  "textures": {
+    "wood": "minecraft:block/stripped_spruce_log",
+    "fiber": "minecraft:block/white_wool",
+    "shaft": "minecraft:block/iron_block"
+  },
+  "elements": [
+    { "from": [4, 1, 4], "to": [12, 15, 12], "faces": { "north": { "texture": "#fiber" }, "south": { "texture": "#fiber" }, "east": { "texture": "#fiber" }, "west": { "texture": "#fiber" }, "up": { "texture": "#fiber" }, "down": { "texture": "#fiber" } } },
+    { "from": [3, 2, 3], "to": [13, 4, 13], "faces": { "north": { "texture": "#wood" }, "south": { "texture": "#wood" }, "east": { "texture": "#wood" }, "west": { "texture": "#wood" }, "up": { "texture": "#wood" }, "down": { "texture": "#wood" } } },
+    { "from": [3, 12, 3], "to": [13, 14, 13], "faces": { "north": { "texture": "#wood" }, "south": { "texture": "#wood" }, "east": { "texture": "#wood" }, "west": { "texture": "#wood" }, "up": { "texture": "#wood" }, "down": { "texture": "#wood" } } },
+    { "from": [6, -2, 6], "to": [10, 18, 10], "faces": { "north": { "texture": "#shaft" }, "south": { "texture": "#shaft" }, "east": { "texture": "#shaft" }, "west": { "texture": "#shaft" }, "up": { "texture": "#shaft" }, "down": { "texture": "#shaft" } } }
+  ]
+}
