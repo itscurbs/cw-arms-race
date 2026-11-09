@@ -15,16 +15,16 @@ import com.curbs.armsrace.item.SetDroneCameraPayload
 import com.curbs.armsrace.recipe.ModRecipes
 import com.simibubi.create.foundation.data.CreateRegistrate
 import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLDedicatedServerSetupEvent
-import net.neoforged.neoforge.client.event.ClientTickEvent
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderers
 import net.neoforged.neoforge.capabilities.Capabilities
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent
+import net.neoforged.neoforge.client.event.ClientTickEvent
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import org.apache.logging.log4j.Level
@@ -50,21 +50,21 @@ object CwArmsRace {
         ModCreativeModeTabs.BASE_TAB
         ModItems.FPV_DRONE
         ModFluids.EPOXY
-        ModEntities.FPV_DRONE;
+        ModEntities.FPV_DRONE
         ModBlocks.KILN
         ModBlocks.WEAVER
         ModBlockEntities.KILN
         ModBlockEntities.WEAVER
         ModRecipes.register()
 
-
-        val obj = runForDist(clientTarget = {
-            MOD_BUS.addListener(::onClientSetup)
-            Minecraft.getInstance()
-        }, serverTarget = {
-            MOD_BUS.addListener(::onServerSetup)
-            "test"
-        })
+        val obj =
+            runForDist(clientTarget = {
+                MOD_BUS.addListener(::onClientSetup)
+                Minecraft.getInstance()
+            }, serverTarget = {
+                MOD_BUS.addListener(::onServerSetup)
+                "test"
+            })
 
         println(obj)
     }
@@ -95,12 +95,12 @@ object CwArmsRace {
     fun registerCapabilities(event: RegisterCapabilitiesEvent) {
         event.registerBlockEntity(
             Capabilities.ItemHandler.BLOCK,
-            ModBlockEntities.KILN.get()
+            ModBlockEntities.KILN.get(),
         ) { be, _ -> be.capability }
 
         event.registerBlockEntity(
             Capabilities.ItemHandler.BLOCK,
-            ModBlockEntities.WEAVER.get()
+            ModBlockEntities.WEAVER.get(),
         ) { be, _ -> be.capability }
     }
 
@@ -110,7 +110,7 @@ object CwArmsRace {
 
         registrar.playToServer(
             DroneInputPayload.TYPE,
-            DroneInputPayload.STREAM_CODEC
+            DroneInputPayload.STREAM_CODEC,
         ) { payload, context ->
             context.enqueueWork {
                 val player = context.player()
@@ -123,7 +123,15 @@ object CwArmsRace {
 
                 val drone = player.level().getEntity(droneId) as? DroneEntity ?: return@enqueueWork
 
-                drone.inputQueue.addLast(com.curbs.armsrace.entity.DroneInputEntry(payload.seq, payload.move, payload.yaw, payload.pitch.coerceIn(-90f, 90f), net.minecraft.world.phys.Vec3.ZERO))
+                drone.inputQueue.addLast(
+                    com.curbs.armsrace.entity.DroneInputEntry(
+                        payload.seq,
+                        payload.move,
+                        payload.yaw,
+                        payload.pitch.coerceIn(-90f, 90f),
+                        net.minecraft.world.phys.Vec3.ZERO,
+                    ),
+                )
                 if (drone.inputQueue.size > 64) {
                     drone.inputQueue.removeFirst()
                 }
@@ -132,7 +140,7 @@ object CwArmsRace {
 
         registrar.playToClient(
             DroneStatePayload.TYPE,
-            DroneStatePayload.STREAM_CODEC
+            DroneStatePayload.STREAM_CODEC,
         ) { payload, context ->
             context.enqueueWork {
                 val mc = Minecraft.getInstance()
@@ -143,7 +151,7 @@ object CwArmsRace {
 
         registrar.playToClient(
             SetDroneCameraPayload.TYPE,
-            SetDroneCameraPayload.STREAM_CODEC
+            SetDroneCameraPayload.STREAM_CODEC,
         ) { payload, context ->
             context.enqueueWork {
                 val mc = Minecraft.getInstance()

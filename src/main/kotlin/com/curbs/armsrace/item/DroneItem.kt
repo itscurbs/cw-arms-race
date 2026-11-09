@@ -51,12 +51,6 @@ data class SetDroneCameraPayload(
     }
 }
 
-/**
- * The FPV drone item.
- *
- * Right-clicking a block places a DroneEntity on top of it.
- * Right-clicking air is currently not handled here.
- */
 class DroneItem(
     properties: Item.Properties
 ) : Item(properties), GeoItem {

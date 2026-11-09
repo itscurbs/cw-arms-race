@@ -15,7 +15,14 @@ object DronePhysics {
         var velocity: Vec3 = Vec3.ZERO
     }
 
-    fun step(state: State, move: Vec2, yawDeg: Float, pitchDeg: Float, speed: Double = DronePhysics.speed, groundCushion: Double = 0.0): Vec3 {
+    fun step(
+        state: State,
+        move: Vec2,
+        yawDeg: Float,
+        pitchDeg: Float,
+        speed: Double = DronePhysics.speed,
+        groundCushion: Double = 0.0,
+    ): Vec3 {
         val h = heaviness.coerceIn(0.0, 1.0)
         val hover = hoverAssist.coerceIn(0.0, 1.0)
         val dead = 0.07 + h * 0.03
@@ -60,11 +67,12 @@ object DronePhysics {
         val desZ = (cosY * cosP * fwd + sinY * str) * top
         val hRate = 0.5 + (0.075 - 0.5) * h
         val vRate = 0.5 + (0.09 - 0.5) * h
-        v = Vec3(
-            v.x + (desX - v.x) * hRate,
-            v.y + (desY - v.y) * vRate + gravity,
-            v.z + (desZ - v.z) * hRate
-        )
+        v =
+            Vec3(
+                v.x + (desX - v.x) * hRate,
+                v.y + (desY - v.y) * vRate + gravity,
+                v.z + (desZ - v.z) * hRate,
+            )
 
         v = v.scale(1.0 / (1.0 + (0.055 + (0.018 - 0.055) * h) * v.length()))
         val maxSpeed = (2.9 + (2.3 - 2.9) * h) * speed.coerceIn(0.4, 2.0)

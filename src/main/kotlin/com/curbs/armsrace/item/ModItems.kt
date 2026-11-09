@@ -12,6 +12,12 @@ object ModItems {
         .model { ctx, prov -> prov.getBuilder(ctx.name).parent(ModelFile.UncheckedModelFile(prov.mcLoc("builtin/entity"))) }
         .register()
 
+    val CONTROLLER: ItemEntry<ControllerItem> = CwArmsRace.REGISTRATE
+        .item("controller") { ControllerItem(Item.Properties().stacksTo(1)) }
+        .lang("Drone Controller")
+        .model { ctx, prov -> prov.getBuilder(ctx.name).parent(ModelFile.UncheckedModelFile(prov.mcLoc("builtin/entity"))) }
+        .register()
+
     val COAL_DUST: ItemEntry<CoalDustItem> = CwArmsRace.REGISTRATE
         .item("coal_dust") { CoalDustItem(Item.Properties().stacksTo(64)) }
         .lang("Coal Dust")
