@@ -1,8 +1,12 @@
 package com.curbs.armsrace.item
 
 import com.curbs.armsrace.CwArmsRace
+import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.item.ItemDisplayContext
 import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
 import software.bernie.geckolib.animatable.GeoItem
 import software.bernie.geckolib.animatable.client.GeoRenderProvider
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
@@ -36,7 +40,26 @@ class ControllerItem(
     }
 }
 
-class ControllerItemRenderer : GeoItemRenderer<ControllerItem>(ControllerItemModel())
+class ControllerItemRenderer : GeoItemRenderer<ControllerItem>(ControllerItemModel()) {
+    private companion object {
+        const val MODEL_SCALE = 0.4f
+    }
+
+    override fun renderByItem(
+        stack: ItemStack,
+        displayContext: ItemDisplayContext,
+        poseStack: PoseStack,
+        buffer: MultiBufferSource,
+        packedLight: Int,
+        packedOverlay: Int
+    ) {
+        poseStack.pushPose()
+        poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE)
+
+        super.renderByItem(stack, displayContext, poseStack, buffer, packedLight, packedOverlay)
+        poseStack.popPose()
+    }
+}
 
 class ControllerItemModel : GeoModel<ControllerItem>() {
     override fun getModelResource(animatable: ControllerItem): ResourceLocation =
