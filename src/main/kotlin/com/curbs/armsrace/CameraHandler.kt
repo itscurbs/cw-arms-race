@@ -34,6 +34,11 @@ object CameraHandler {
         val mc = Minecraft.getInstance()
         val cam = mc.cameraEntity
 
+        if (cam is DroneEntity && cam.predictedCollision) {
+            cam.predictedCollision = false
+            mc.cameraEntity = mc.player
+            return
+        }
         if (cam is DroneEntity && cam.isRemoved) {
             mc.cameraEntity = mc.player
         }

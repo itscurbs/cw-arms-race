@@ -129,7 +129,6 @@ object CwArmsRace {
                         payload.move,
                         payload.yaw,
                         payload.pitch.coerceIn(-90f, 90f),
-                        net.minecraft.world.phys.Vec3.ZERO,
                     ),
                 )
                 if (drone.inputQueue.size > 64) {
@@ -145,7 +144,16 @@ object CwArmsRace {
             context.enqueueWork {
                 val mc = Minecraft.getInstance()
                 val drone = mc.level?.getEntity(payload.droneId) as? DroneEntity ?: return@enqueueWork
-                drone.reconcile(payload.x, payload.y, payload.z, payload.seq, payload.vx, payload.vy, payload.vz)
+                drone.reconcile(
+                    payload.x,
+                    payload.y,
+                    payload.z,
+                    payload.seq,
+                    payload.vx,
+                    payload.vy,
+                    payload.vz,
+                    payload.confirmedImpact,
+                )
             }
         }
 

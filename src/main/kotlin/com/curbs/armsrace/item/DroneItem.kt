@@ -86,7 +86,7 @@ class DroneItem(
             spawnPos.z
         )
 
-        drone.simState.velocity = Vec3.ZERO
+        drone.bodyVelocity = Vec3.ZERO
 
         drone.ownerId = player.uuid
 

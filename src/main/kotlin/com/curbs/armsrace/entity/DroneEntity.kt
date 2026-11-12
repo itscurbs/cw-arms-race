@@ -3,6 +3,8 @@ package com.curbs.armsrace.entity
 import com.julian.createwarfare.effects.server.ShakeEffect
 import com.julian.createwarfare.effects.server.SoundWaveEffect
 import com.julian.createwarfare.effects.server.WaveEffect
+import com.julian.createwarfare.effects.server.particles.GenericExplosionParticleEffect
+import com.julian.createwarfare.effects.server.particles.GroundExplosionParticleEffect
 import com.julian.createwarfare.explosions.types.GenericExplosion
 import io.netty.buffer.ByteBuf
 import net.minecraft.client.Minecraft
@@ -15,16 +17,15 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
+import net.minecraft.sounds.SoundSource
 import net.minecraft.util.Mth
 import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
-import net.minecraft.world.entity.MoverType
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec2
 import net.minecraft.world.phys.Vec3
 import net.neoforged.neoforge.network.PacketDistributor
-import org.apache.logging.log4j.LogManager
 import software.bernie.geckolib.animatable.GeoEntity
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.animation.AnimatableManager
@@ -77,6 +78,7 @@ data class DroneStatePayload(
     val vx: Double = 0.0,
     val vy: Double = 0.0,
     val vz: Double = 0.0,
+    val confirmedImpact: Boolean = false,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<DroneStatePayload> {
@@ -98,6 +100,7 @@ data class DroneStatePayload(
                 ByteBufCodecs.DOUBLE.encode(buf, v.vx)
                 ByteBufCodecs.DOUBLE.encode(buf, v.vy)
                 ByteBufCodecs.DOUBLE.encode(buf, v.vz)
+                ByteBufCodecs.BOOL.encode(buf, v.confirmedImpact)
             }
 
             override fun decode(buf: ByteBuf): DroneStatePayload {
@@ -109,7 +112,8 @@ data class DroneStatePayload(
                 val vx = if (buf.isReadable(8)) ByteBufCodecs.DOUBLE.decode(buf) else 0.0
                 val vy = if (buf.isReadable(8)) ByteBufCodecs.DOUBLE.decode(buf) else 0.0
                 val vz = if (buf.isReadable(8)) ByteBufCodecs.DOUBLE.decode(buf) else 0.0
-                return DroneStatePayload(droneId, seq, x, y, z, vx, vy, vz)
+                val confirmedImpact = if (buf.isReadable) ByteBufCodecs.BOOL.decode(buf) else false
+                return DroneStatePayload(droneId, seq, x, y, z, vx, vy, vz, confirmedImpact)
             }
         }
     }
@@ -120,16 +124,8 @@ data class DroneInputEntry(
     val move: Vec2,
     val yaw: Float,
     val pitch: Float,
-    val pos: Vec3,
-    val vel: Vec3 = Vec3.ZERO,
 )
 
-/**
- * The FPV drone entity. Behaviour is still a STUB - it does not move yet.
- *
- * Flight physics, collision and detonation come later; see the doc comments on
- * each method below for where that logic belongs.
- */
 class DroneEntity(
     type: EntityType<out DroneEntity>,
     level: Level
@@ -142,9 +138,12 @@ class DroneEntity(
 
     var inputSeq: Int = 0
     var lastAckSeq: Int = 0
-    val pending: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
     val inputQueue: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
-    var simState: DronePhysics.State = DronePhysics.State()
+    val pendingInputs: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
+    private val predictionState = DronePhysics.State()
+    private var predictionInitialized = false
+    var bodyVelocity: Vec3 = Vec3.ZERO
+    var predictedCollision: Boolean = false
     var visualRoll: Float = 0f
     var visualPitchLean: Float = 0f
     var visualPitchFollow: Float = 0.3f
@@ -152,6 +151,9 @@ class DroneEntity(
 
     var visualPrevYaw: Float = 0f
     var visualYawInit: Boolean = false
+
+    private var body: DroneBody? = null
+    private var detonating = false
 
     fun updateVisualTilt() {
         if (!level().isClientSide) return
@@ -191,94 +193,92 @@ class DroneEntity(
         visualPitchFollow += (targetFollow - visualPitchFollow) * alpha
     }
 
-    companion object {
-        private val LOGGER = LogManager.getLogger("armsrace")
-
-        const val SPEED = 1.0
-
-        fun calcMovement(move: Vec2, yawDeg: Float, pitchDeg: Float, speed: Double = SPEED): Vec3 {
-            val strafe = -move.x.toDouble()
-            val forward = move.y.toDouble()
-            if (strafe == 0.0 && forward == 0.0) return Vec3.ZERO
-            val yaw = Math.toRadians(yawDeg.toDouble())
-            val pitch = Math.toRadians(pitchDeg.toDouble())
-            val forwardX = -kotlin.math.sin(yaw) * kotlin.math.cos(pitch)
-            val forwardY = -kotlin.math.sin(pitch)
-            val forwardZ = kotlin.math.cos(yaw) * kotlin.math.cos(pitch)
-            val rightX = kotlin.math.cos(yaw)
-            val rightZ = kotlin.math.sin(yaw)
-            val x = forwardX * forward + rightX * strafe
-            val y = forwardY * forward
-            val z = forwardZ * forward + rightZ * strafe
-            val movement = Vec3(x, y, z)
-            if (movement.lengthSqr() <= 0.0) return Vec3.ZERO
-            return movement.normalize().scale(speed)
-        }
+    private fun ensureBody(): DroneBody? {
+        val current = body
+        if (current != null && current.active) return current
+        current?.remove()
+        body = null
+        val serverLevel = level() as? ServerLevel ?: return null
+        val created = DroneBody.create(
+            serverLevel,
+            Vec3(x, y + DroneBody.HALF_HEIGHT, z),
+            bodyVelocity,
+        ) ?: return null
+        body = created
+        return created
     }
 
-    fun groundCushion(): Double {
-        val pos = blockPosition()
-        for (d in 1..4) {
-            val below = pos.below(d)
-            val state = level().getBlockState(below)
-            if (!state.isAir) {
-                val gap = y - (below.y + 1.0)
-                return (1.0 - (gap / 4.0)).coerceIn(0.0, 1.0)
-            }
-        }
-        return 0.0
-    }
-
-    fun stepPhysics(move: Vec2, yawDeg: Float, pitchDeg: Float, speed: Double = DronePhysics.speed): Vec3 {
-        return DronePhysics.step(simState, move, yawDeg, pitchDeg, speed, groundCushion())
-    }
-
-    fun reconcile(sx: Double, sy: Double, sz: Double, ack: Int, svx: Double = 0.0, svy: Double = 0.0, svz: Double = 0.0) {
-        var ackPos: Vec3? = null
-        for (e in pending) {
-            if (e.seq == ack) {
-                ackPos = e.pos
-                break
-            }
-        }
-        while (pending.isNotEmpty() && pending.first().seq <= ack) {
-            pending.removeFirst()
-        }
-        val serverVel = Vec3(svx, svy, svz)
-        if (pending.isEmpty()) {
-            val dx = sx - x
-            val dy = sy - y
-            val dz = sz - z
-            if (dx * dx + dy * dy + dz * dz < 0.04) {
-                if (serverVel.lengthSqr() > 0.0) simState.velocity = serverVel
-                return
-            }
-            setPos(sx, sy, sz)
-            simState.velocity = serverVel
-            deltaMovement = serverVel
-            return
-        }
-        val base = ackPos ?: return
-        val ex = sx - base.x
-        val ey = sy - base.y
-        val ez = sz - base.z
-        if (ex * ex + ey * ey + ez * ez < 0.04) return
+    fun reconcile(
+        sx: Double,
+        sy: Double,
+        sz: Double,
+        ack: Int,
+        svx: Double = 0.0,
+        svy: Double = 0.0,
+        svz: Double = 0.0,
+        confirmedImpact: Boolean = false,
+    ) {
+        if (!level().isClientSide) return
+        if (ack < lastAckSeq) return
+        if (confirmedImpact) predictedCollision = true
         setPos(sx, sy, sz)
-        simState.velocity = serverVel
-        for (i in pending.indices) {
-            val e = pending[i]
-            val v = DronePhysics.step(simState, e.move, e.yaw, e.pitch, DronePhysics.speed, groundCushion())
-            if (v.lengthSqr() > 1e-9) {
-                deltaMovement = v
-                move(MoverType.SELF, v)
-            } else {
-                deltaMovement = Vec3.ZERO
-            }
-            pending[i] = DroneInputEntry(e.seq, e.move, e.yaw, e.pitch, position(), simState.velocity)
+        bodyVelocity = Vec3(svx, svy, svz)
+        predictionState.velocity = bodyVelocity
+        predictionInitialized = true
+        if (ack > lastAckSeq) lastAckSeq = ack
+        while (pendingInputs.isNotEmpty() && pendingInputs.first().seq <= ack) {
+            pendingInputs.removeFirst()
         }
+        for (input in pendingInputs) {
+            setYRot(input.yaw)
+            setXRot(input.pitch.coerceIn(-90f, 90f))
+            predict(input)
+        }
+        bodyVelocity = predictionState.velocity
+        deltaMovement = bodyVelocity.scale(1.0 / 20.0)
+    }
+
+    private fun predict(input: DroneInputEntry) {
+        val velocity = DronePhysics.step(predictionState, input.move, input.yaw, input.pitch, DronePhysics.speed)
+        var next = velocity
+        val tickVelocity = velocity.scale(1.0 / 20.0)
+        val steps = 4
+        val step = tickVelocity.scale(1.0 / steps)
+        val grounded = !level().noCollision(this, boundingBox.move(0.0, -0.03, 0.0))
+        if (grounded && next.y < 0.0) {
+            next = Vec3(next.x, 0.0, next.z)
+        }
+        repeat(steps) {
+            if (level().noCollision(this, boundingBox.move(step.x, 0.0, 0.0))) {
+                setPos(x + step.x, y, z)
+            } else {
+                next = Vec3(-next.x * COLLISION_RESTITUTION, next.y, next.z)
+            }
+            if (grounded && step.y <= 0.0) {
+                next = Vec3(next.x, 0.0, next.z)
+            } else if (level().noCollision(this, boundingBox.move(0.0, step.y, 0.0))) {
+                setPos(x, y + step.y, z)
+            } else {
+                next = Vec3(next.x, -next.y * COLLISION_RESTITUTION, next.z)
+            }
+            if (level().noCollision(this, boundingBox.move(0.0, 0.0, step.z))) {
+                setPos(x, y, z + step.z)
+            } else {
+                next = Vec3(next.x, next.y, -next.z * COLLISION_RESTITUTION)
+            }
+        }
+        if (next.y <= 0.0 && !level().noCollision(this, boundingBox.move(0.0, -0.02, 0.0))) {
+            next = Vec3(next.x, 0.0, next.z)
+        }
+        predictionState.velocity = next
+        bodyVelocity = next
+        deltaMovement = next.scale(1.0 / 20.0)
     }
 
     private fun onImpact() {
+        if (detonating || isRemoved) return
+        detonating = true
+        discard()
         val pos = blockPosition()
 
         GenericExplosion.trigger(
@@ -288,39 +288,19 @@ class DroneEntity(
             12.0F,
             96.0F,
         )
-
-        WaveEffect.start(
+        GenericExplosionParticleEffect.start(
             level() as ServerLevel?,
-            blockPosition(),
-            2.0F,
-            12.0F,
-            0xffe3b8,
-            1.0F,
-            0,
-            true,
-        )
-
-        ShakeEffect.start(
-            level() as ServerLevel?,
-            blockPosition(),
-            24.0F,
-            8.0F,
-            20,
-            true,
-        )
-
-        SoundWaveEffect.start(
-            level() as ServerLevel?,
-            blockPosition(),
-            17.15F,
+            pos,
             128.0F,
-            SoundEvents.GENERIC_EXPLODE.value(),
-            true,
         )
-
-
-
-        discard()
+        level().playSound(
+            null,
+            pos,
+            SoundEvents.GENERIC_EXPLODE.value(),
+            SoundSource.BLOCKS,
+            4.0f,
+            0.8f,
+        )
     }
 
     override fun isPickable(): Boolean = true
@@ -328,7 +308,7 @@ class DroneEntity(
     override fun isAttackable(): Boolean = true
 
     override fun hurt(source: DamageSource, amount: Float): Boolean {
-        if (level().isClientSide || isRemoved) return false
+        if (level().isClientSide || isRemoved || detonating) return false
         if (amount <= 0f) return false
         onImpact()
         return true
@@ -342,7 +322,13 @@ class DroneEntity(
         xRotO = xRot
     }
 
-
+    override fun remove(reason: Entity.RemovalReason) {
+        if (!level().isClientSide) {
+            body?.remove()
+            body = null
+        }
+        super.remove(reason)
+    }
 
     /**
      * Geckolib's per-entity animation state store. Created from `this`, which is
@@ -360,12 +346,7 @@ class DroneEntity(
     override fun registerControllers(registrar: AnimatableManager.ControllerRegistrar) {
     }
 
-    /**
-     * Runs 20 times a second while the entity exists. This is where the flight
-     * model (gravity + throttle thrust + drag) and the block/entity collision
-     * checks that trigger detonation will go.
-     */
-    override fun tick() {;
+    override fun tick() {
         super.tick()
 
         if (!level().isClientSide) {
@@ -385,52 +366,27 @@ class DroneEntity(
                 lastAckSeq = next.seq
             }
 
-            var velocity = stepPhysics(move, yRot, xRot)
-            val horizontalImpact = kotlin.math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
-            val upwardImpact = velocity.y
-            val impactSpeed = velocity.length()
-            val driving = move.x * move.x + move.y * move.y > 0.01f
-            if (onGround() && velocity.y < 0.0 && velocity.y > -0.55) {
-                velocity = Vec3(velocity.x, 0.0, velocity.z)
-                simState.velocity = Vec3(simState.velocity.x, 0.0, simState.velocity.z)
-            }
-            deltaMovement = velocity
-            if (velocity.lengthSqr() > 1e-9) {
-                move(MoverType.SELF, velocity)
-                if (horizontalCollision) {
-                    if (horizontalImpact > 0.65) {
-                        onImpact()
-                        return
-                    } else {
-                        simState.velocity = Vec3(simState.velocity.x * 0.3, simState.velocity.y, simState.velocity.z * 0.3)
-                    }
-                }
-                if (verticalCollision && !onGround()) {
-                    if (upwardImpact > 0.65) {
-                        onImpact()
-                        return
-                    } else {
-                        simState.velocity = Vec3(simState.velocity.x, 0.0, simState.velocity.z)
-                    }
-                }
-                if (onGround()) {
-                    if (driving && velocity.y < -0.25 && impactSpeed > 0.65) {
-                        onImpact()
-                        return
-                    }
-                    simState.velocity = Vec3(simState.velocity.x * 0.5, 0.0, simState.velocity.z * 0.5)
-                    fallDistance = 0f
-                }
-            } else {
-                move(MoverType.SELF, Vec3.ZERO)
-                if (onGround()) {
-                    fallDistance = 0f
-                }
-            }
-
+            val body = ensureBody() ?: return
+            val impactSpeed = body.sync()
+            val center = body.center()
+            setPos(center.x, center.y - DroneBody.HALF_HEIGHT, center.z)
             val owner = ownerId?.let { (level() as ServerLevel).getPlayerByUUID(it) as? ServerPlayer }
+            if (impactSpeed >= HARD_IMPACT_SPEED) {
+                if (owner != null) {
+                    PacketDistributor.sendToPlayer(
+                        owner,
+                        DroneStatePayload(id, lastAckSeq, x, y, z, confirmedImpact = true),
+                    )
+                }
+                onImpact()
+                return
+            }
+            body.drive(move, yRot, xRot, DronePhysics.speed)
+            bodyVelocity = body.velocity()
+            deltaMovement = bodyVelocity.scale(1.0 / 20.0)
+
             if (owner != null) {
-                val sv = simState.velocity
+                val sv = bodyVelocity
                 PacketDistributor.sendToPlayer(owner, DroneStatePayload(id, lastAckSeq, x, y, z, sv.x, sv.y, sv.z))
             }
 
@@ -451,34 +407,15 @@ class DroneEntity(
                         (if (mc.options.keyDown.isDown) 1f else 0f),
             )
             inputSeq++
-            var velocity = stepPhysics(move, yRot, xRot)
-            val horizontalImpact = kotlin.math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
-            val upwardImpact = velocity.y
-            val impactSpeed = velocity.length()
-            val driving = move.x * move.x + move.y * move.y > 0.01f
-            if (onGround() && velocity.y < 0.0 && velocity.y > -0.55) {
-                velocity = Vec3(velocity.x, 0.0, velocity.z)
-                simState.velocity = Vec3(simState.velocity.x, 0.0, simState.velocity.z)
+            val input = DroneInputEntry(inputSeq, move, yRot, xRot)
+            pendingInputs.addLast(input)
+            if (!predictionInitialized) {
+                predictionState.velocity = bodyVelocity
+                predictionInitialized = true
             }
-            if (velocity.lengthSqr() > 1e-9) {
-                deltaMovement = velocity
-                move(MoverType.SELF, velocity)
-            } else {
-                deltaMovement = Vec3.ZERO
-            }
-            if (horizontalCollision && horizontalImpact <= 0.65) {
-                simState.velocity = Vec3(simState.velocity.x * 0.3, simState.velocity.y, simState.velocity.z * 0.3)
-            }
-            if (verticalCollision && !onGround() && upwardImpact <= 0.65) {
-                simState.velocity = Vec3(simState.velocity.x, 0.0, simState.velocity.z)
-            }
-            if (onGround()) {
-                simState.velocity = Vec3(simState.velocity.x * 0.5, 0.0, simState.velocity.z * 0.5)
-                fallDistance = 0f
-            }
-            pending.addLast(DroneInputEntry(inputSeq, move, yRot, xRot, position(), simState.velocity))
-            if (pending.size > 40) {
-                pending.removeFirst()
+            predict(input)
+            if (pendingInputs.size > 64) {
+                pendingInputs.removeFirst()
             }
             PacketDistributor.sendToServer(
                 DroneInputPayload(
@@ -488,13 +425,6 @@ class DroneEntity(
                     inputSeq
                 )
             )
-            if (horizontalCollision && horizontalImpact > 0.65) {
-                discard()
-            } else if (verticalCollision && !onGround() && upwardImpact > 0.65) {
-                discard()
-            } else if (onGround() && driving && velocity.y < -0.25 && impactSpeed > 0.65) {
-                discard()
-            }
         }
     }
 
@@ -520,18 +450,23 @@ class DroneEntity(
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
     }
 
+    companion object {
+        private const val COLLISION_RESTITUTION = 0.15
+        private const val HARD_IMPACT_SPEED = 6.0
+    }
+
     /** Writes our custom data to NBT so it survives a world save. */
     override fun addAdditionalSaveData(tag: CompoundTag) {
-        val v = simState.velocity
-        tag.putDouble("PhysVX", v.x)
-        tag.putDouble("PhysVY", v.y)
-        tag.putDouble("PhysVZ", v.z)
+        val v = bodyVelocity
+        tag.putDouble("BodyVX", v.x)
+        tag.putDouble("BodyVY", v.y)
+        tag.putDouble("BodyVZ", v.z)
     }
 
     /** Reads back what [addAdditionalSaveData] wrote. */
     override fun readAdditionalSaveData(tag: CompoundTag) {
-        if (tag.contains("PhysVX")) {
-            simState.velocity = Vec3(tag.getDouble("PhysVX"), tag.getDouble("PhysVY"), tag.getDouble("PhysVZ"))
+        if (tag.contains("BodyVX")) {
+            bodyVelocity = Vec3(tag.getDouble("BodyVX"), tag.getDouble("BodyVY"), tag.getDouble("BodyVZ"))
         }
     }
 }
