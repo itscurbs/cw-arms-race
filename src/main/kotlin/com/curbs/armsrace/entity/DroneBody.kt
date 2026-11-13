@@ -69,8 +69,8 @@ class DroneBody private constructor(
         if (!active) return
         handle.getLinearVelocity(linear)
 
-        val h = DronePhysics.heaviness.coerceIn(0.0, 1.0)
-        val hover = DronePhysics.hoverAssist.coerceIn(0.0, 1.0)
+        val h = DronePhysics.spec.heaviness.coerceIn(0.0, 1.0)
+        val hover = DronePhysics.spec.hoverAssist.coerceIn(0.0, 1.0)
         val deadzone = 0.07 + h * 0.03
         val rawStrafe = -move.x.toDouble()
         val rawForward = move.y.toDouble()

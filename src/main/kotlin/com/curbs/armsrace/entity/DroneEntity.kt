@@ -1,6 +1,12 @@
 package com.curbs.armsrace.entity
 
 import com.curbs.armsrace.item.ControllerItem
+import com.curbs.armsrace.api.uav.UavControlInput
+import com.curbs.armsrace.api.uav.UavPredictionEngine
+import com.curbs.armsrace.api.uav.UavPredictionState
+import com.curbs.armsrace.api.uav.UavLinkable
+import com.curbs.armsrace.api.uav.UavInputReceiver
+import com.curbs.armsrace.api.uav.UavPilot
 import com.julian.createwarfare.effects.server.ShakeEffect
 import com.julian.createwarfare.effects.server.SoundWaveEffect
 import com.julian.createwarfare.effects.server.WaveEffect
@@ -130,23 +136,26 @@ data class DroneInputEntry(
 class DroneEntity(
     type: EntityType<out DroneEntity>,
     level: Level
-) : Entity(type, level), GeoEntity {
+) : Entity(type, level), GeoEntity, UavLinkable, UavInputReceiver, UavPilot {
 
 
     var move: Vec2 = Vec2(0f, 0f)
 
-    var ownerId: UUID? = null
+    override var ownerId: UUID? = null
 
-    var controllerId: UUID? = null
+    override var controllerId: UUID? = null
 
     var inputSeq: Int = 0
     var lastAckSeq: Int = 0
     val inputQueue: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
     val pendingInputs: kotlin.collections.ArrayDeque<DroneInputEntry> = kotlin.collections.ArrayDeque()
     private val predictionState = DronePhysics.State()
+    private val predictionEngine = UavPredictionEngine(com.curbs.armsrace.api.uav.FpvFlightModel, DronePhysics.spec)
     private var predictionInitialized = false
     var bodyVelocity: Vec3 = Vec3.ZERO
-    var predictedCollision: Boolean = false
+    override var predictedCollision: Boolean = false
+    override val pilotEntity: Entity
+        get() = this
     var visualRoll: Float = 0f
     var visualPitchLean: Float = 0f
     var visualPitchFollow: Float = 0.3f
@@ -157,6 +166,11 @@ class DroneEntity(
 
     private var body: DroneBody? = null
     private var detonating = false
+
+    override fun queueInput(input: UavControlInput) {
+        inputQueue.addLast(DroneInputEntry(input.seq, input.move, input.yaw, input.pitch))
+        if (inputQueue.size > 64) inputQueue.removeFirst()
+    }
 
     fun updateVisualTilt() {
         if (!level().isClientSide) return
@@ -242,7 +256,12 @@ class DroneEntity(
     }
 
     private fun predict(input: DroneInputEntry) {
-        val velocity = DronePhysics.step(predictionState, input.move, input.yaw, input.pitch, DronePhysics.speed)
+        val predicted = UavPredictionState(position(), predictionState.velocity)
+        val velocity = predictionEngine.predict(
+            predicted,
+            UavControlInput(input.seq, input.move, input.yaw, input.pitch),
+        )
+        predictionState.velocity = predicted.velocity
         var next = velocity
         val tickVelocity = velocity.scale(1.0 / 20.0)
         val steps = 4
@@ -325,6 +344,13 @@ class DroneEntity(
         xRotO = xRot
     }
 
+    override fun applyPilotLook(yaw: Float, pitch: Float) {
+        setYRot(yaw)
+        setXRot(pitch.coerceIn(-90f, 90f))
+        yRotO = yRot
+        xRotO = xRot
+    }
+
     override fun remove(reason: Entity.RemovalReason) {
         if (!level().isClientSide) {
             body?.remove()
@@ -396,7 +422,7 @@ class DroneEntity(
                 onImpact()
                 return
             }
-            body.drive(move, yRot, xRot, DronePhysics.speed)
+            body.drive(move, yRot, xRot, DronePhysics.spec.speed)
             bodyVelocity = body.velocity()
             deltaMovement = bodyVelocity.scale(1.0 / 20.0)
 

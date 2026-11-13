@@ -1,8 +1,12 @@
 package com.curbs.armsrace.block
 
+import com.curbs.armsrace.api.uav.UavStationBlockEntity
+import com.curbs.armsrace.entity.DroneEntity
+import com.curbs.armsrace.entity.ModEntities
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.core.BlockPos
-import net.minecraft.core.HolderLookup
-import net.minecraft.nbt.CompoundTag
+import net.minecraft.world.phys.Vec3
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockState
@@ -16,14 +20,14 @@ class DroneBlockEntity(
     type: BlockEntityType<*>,
     pos: BlockPos,
     state: BlockState
-) : BlockEntity(type, pos, state), GeoBlockEntity {
+) : UavStationBlockEntity(type, pos, state), GeoBlockEntity {
 
-    var controllerId: UUID? = null
-        set(value) {
-            if (field == value) return
-            field = value
-            setChanged()
-        }
+    override fun createUav(level: ServerLevel, player: ServerPlayer): DroneEntity? {
+        val drone = ModEntities.FPV_DRONE.get().create(level) ?: return null
+        val position = Vec3.atCenterOf(worldPosition.above())
+        drone.moveTo(position.x, position.y, position.z, player.yRot, 0f)
+        return drone
+    }
 
     private val cache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
 
@@ -32,13 +36,4 @@ class DroneBlockEntity(
     override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
     }
 
-    override fun saveAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
-        super.saveAdditional(tag, registries)
-        controllerId?.let { tag.putUUID("Controller", it) }
-    }
-
-    override fun loadAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
-        super.loadAdditional(tag, registries)
-        controllerId = if (tag.hasUUID("Controller")) tag.getUUID("Controller") else null
-    }
 }

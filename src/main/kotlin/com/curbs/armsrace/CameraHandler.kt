@@ -1,6 +1,6 @@
 package com.curbs.armsrace
 
-import com.curbs.armsrace.entity.DroneEntity
+import com.curbs.armsrace.api.uav.UavPilot
 import net.minecraft.client.Minecraft
 import net.neoforged.neoforge.client.event.CalculatePlayerTurnEvent
 import net.neoforged.neoforge.client.event.ClientTickEvent
@@ -13,20 +13,20 @@ object CameraHandler {
     private var predPitch = 0f
     private var pilotedId: Int? = null
 
-    private fun pilotedDrone(): DroneEntity? {
-        val drone = Minecraft.getInstance().cameraEntity as? DroneEntity
+    private fun pilotedUav(): UavPilot? {
+        val drone = Minecraft.getInstance().cameraEntity as? UavPilot
             ?: run {
                 pilotedId = null
                 return null
             }
-        if (drone.isRemoved) {
+        if (drone.pilotEntity.isRemoved) {
             pilotedId = null
             return null
         }
-        if (pilotedId != drone.id) {
-            pilotedId = drone.id
-            predYaw = drone.yRot
-            predPitch = drone.xRot
+        if (pilotedId != drone.pilotEntity.id) {
+            pilotedId = drone.pilotEntity.id
+            predYaw = drone.pilotEntity.yRot
+            predPitch = drone.pilotEntity.xRot
         }
         return drone
     }
@@ -34,12 +34,12 @@ object CameraHandler {
         val mc = Minecraft.getInstance()
         val cam = mc.cameraEntity
 
-        if (cam is DroneEntity && cam.predictedCollision) {
+        if (cam is UavPilot && cam.predictedCollision) {
             cam.predictedCollision = false
             mc.cameraEntity = mc.player
             return
         }
-        if (cam is DroneEntity && cam.isRemoved) {
+        if (cam is UavPilot && cam.pilotEntity.isRemoved) {
             mc.cameraEntity = mc.player
         }
     }
@@ -47,14 +47,14 @@ object CameraHandler {
     fun onRenderHand(event: RenderHandEvent) {
         val mc = Minecraft.getInstance()
 
-        if (mc.cameraEntity is DroneEntity) {
+        if (mc.cameraEntity is UavPilot) {
             event.isCanceled = true
         }
     }
 
     fun onCalculateTurn(event: CalculatePlayerTurnEvent) {
         val mc = Minecraft.getInstance()
-        val drone = pilotedDrone() ?: return
+        val drone = pilotedUav() ?: return
 
         val realSens = event.mouseSensitivity
         val f = realSens * 0.6 + 0.2
@@ -69,10 +69,7 @@ object CameraHandler {
         // can't skew the base we accumulate onto.
         predYaw += (dx * 0.15).toFloat()
         predPitch = (predPitch + (dy * inv * 0.15).toFloat()).coerceIn(-90f, 90f)
-        drone.setYRot(predYaw)
-        drone.setXRot(predPitch)
-        drone.yRotO = predYaw
-        drone.xRotO = predPitch
+        drone.applyPilotLook(predYaw, predPitch)
 
         // f = 0 -> player.turn(0, 0); -1/3 * 0.6 + 0.2 = 0
         event.mouseSensitivity = -1.0 / 3.0
@@ -84,10 +81,7 @@ object CameraHandler {
      * reasserts predicted look so server echo never survives a frame.
      */
     fun onFramePre(event: RenderFrameEvent.Pre) {
-        val drone = pilotedDrone() ?: return
-        drone.setYRot(predYaw)
-        drone.setXRot(predPitch)
-        drone.yRotO = predYaw
-        drone.xRotO = predPitch
+        val drone = pilotedUav() ?: return
+        drone.applyPilotLook(predYaw, predPitch)
     }
 }

@@ -9,6 +9,8 @@ import com.curbs.armsrace.entity.DroneEntity
 import com.curbs.armsrace.entity.DroneInputPayload
 import com.curbs.armsrace.entity.DroneStatePayload
 import com.curbs.armsrace.entity.ModEntities
+import com.curbs.armsrace.api.uav.UavControlInput
+import com.curbs.armsrace.api.uav.UavInputReceiver
 import com.curbs.armsrace.fluid.ModFluids
 import com.curbs.armsrace.item.ModCreativeModeTabs
 import com.curbs.armsrace.item.ModDataComponents
@@ -127,21 +129,18 @@ object CwArmsRace {
                     return@enqueueWork
                 }
 
-                val drone = (player.level() as? ServerLevel)
-                    ?.getEntity(data.getUUID("Drone")) as? DroneEntity
+                val receiver = (player.level() as? ServerLevel)
+                    ?.getEntity(data.getUUID("Drone")) as? UavInputReceiver
                     ?: return@enqueueWork
 
-                drone.inputQueue.addLast(
-                    com.curbs.armsrace.entity.DroneInputEntry(
+                receiver.queueInput(
+                    UavControlInput(
                         payload.seq,
                         payload.move,
                         payload.yaw,
                         payload.pitch.coerceIn(-90f, 90f),
                     ),
                 )
-                if (drone.inputQueue.size > 64) {
-                    drone.inputQueue.removeFirst()
-                }
             }
         }
 
@@ -173,7 +172,7 @@ object CwArmsRace {
                 val mc = Minecraft.getInstance()
                 val drone = mc.level?.getEntity(payload.droneId)
 
-                if (drone is DroneEntity) {
+                if (drone != null) {
                     mc.cameraEntity = drone
                 }
             }

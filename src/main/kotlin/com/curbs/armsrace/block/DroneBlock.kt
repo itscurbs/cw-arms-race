@@ -1,37 +1,22 @@
 package com.curbs.armsrace.block
 
 import com.curbs.armsrace.item.ControllerItem
+import com.curbs.armsrace.api.uav.UavStationBlock
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
-import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.BaseEntityBlock
 import net.minecraft.world.level.block.entity.BlockEntity
-import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.Shapes
 import net.minecraft.world.phys.shapes.VoxelShape
+import net.minecraft.world.level.block.state.BlockState
 
-class DroneBlock(properties: Properties) : BaseEntityBlock(properties) {
+class DroneBlock(properties: Properties) : UavStationBlock(properties, SHAPE) {
 
     override fun codec(): MapCodec<out BaseEntityBlock> = simpleCodec(::DroneBlock)
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity =
         DroneBlockEntity(ModBlockEntities.FPV_DRONE.get(), pos, state)
-
-    override fun getShape(
-        state: BlockState,
-        level: BlockGetter,
-        pos: BlockPos,
-        context: CollisionContext
-    ): VoxelShape = SHAPE
-
-    override fun getOcclusionShape(state: BlockState, level: BlockGetter, pos: BlockPos): VoxelShape =
-        Shapes.empty()
-
-    override fun getShadeBrightness(state: BlockState, level: BlockGetter, pos: BlockPos): Float = 1.0f
-
-    override fun propagatesSkylightDown(state: BlockState, level: BlockGetter, pos: BlockPos): Boolean = true
 
     override fun onRemove(
         state: BlockState,
