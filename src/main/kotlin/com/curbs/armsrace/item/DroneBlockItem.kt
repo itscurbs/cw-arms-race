@@ -1,21 +1,15 @@
 package com.curbs.armsrace.item
 
 import com.curbs.armsrace.client.DroneItemRenderer
-import com.curbs.armsrace.entity.DroneEntity
-import com.curbs.armsrace.entity.ModEntities
 import com.google.common.base.Suppliers
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.server.level.ServerLevel
-import net.minecraft.server.level.ServerPlayer
-import net.minecraft.world.InteractionResult
+import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
-import net.minecraft.world.item.context.UseOnContext
-import net.minecraft.world.phys.Vec3
-import net.neoforged.neoforge.network.PacketDistributor
+import net.minecraft.world.level.block.Block
 import software.bernie.geckolib.animatable.GeoItem
 import software.bernie.geckolib.animatable.SingletonGeoAnimatable
 import software.bernie.geckolib.animatable.client.GeoRenderProvider
@@ -25,9 +19,6 @@ import software.bernie.geckolib.renderer.GeoItemRenderer
 import software.bernie.geckolib.util.GeckoLibUtil
 import java.util.function.Consumer
 
-/**
- * Packet telling the client which drone to use as the camera.
- */
 data class SetDroneCameraPayload(
     val droneId: Int
 ) : CustomPacketPayload {
@@ -51,60 +42,16 @@ data class SetDroneCameraPayload(
     }
 }
 
-class DroneItem(
+class DroneBlockItem(
+    block: Block,
     properties: Item.Properties
-) : Item(properties), GeoItem {
+) : BlockItem(block, properties), GeoItem {
 
     private val geoCache: AnimatableInstanceCache =
         GeckoLibUtil.createInstanceCache(this)
 
     init {
         SingletonGeoAnimatable.registerSyncedAnimatable(this)
-    }
-
-    override fun useOn(context: UseOnContext): InteractionResult {
-        val player = context.player as? ServerPlayer
-            ?: return InteractionResult.PASS
-
-        val serverLevel = context.level as? ServerLevel
-            ?: return InteractionResult.PASS
-
-        val stack = context.itemInHand
-
-        val spawnPos = Vec3.atBottomCenterOf(
-            context.clickedPos.above()
-        )
-
-        val drone = DroneEntity(
-            ModEntities.FPV_DRONE.get(),
-            serverLevel
-        )
-
-        drone.setPos(
-            spawnPos.x,
-            spawnPos.y,
-            spawnPos.z
-        )
-
-        drone.bodyVelocity = Vec3.ZERO
-
-        drone.ownerId = player.uuid
-
-        player.persistentData.putInt(
-            "Drone",
-            drone.id
-        )
-
-        serverLevel.addFreshEntity(drone)
-
-        PacketDistributor.sendToPlayer(
-            player,
-            SetDroneCameraPayload(drone.id)
-        )
-
-        stack.consume(1, player)
-
-        return InteractionResult.SUCCESS
     }
 
     override fun registerControllers(
@@ -123,11 +70,11 @@ class DroneItem(
             object : GeoRenderProvider {
 
                 private val renderer =
-                    Suppliers.memoize<GeoItemRenderer<DroneItem>> {
+                    Suppliers.memoize<GeoItemRenderer<DroneBlockItem>> {
                         DroneItemRenderer()
                     }
 
-                override fun getGeoItemRenderer(): GeoItemRenderer<DroneItem> {
+                override fun getGeoItemRenderer(): GeoItemRenderer<DroneBlockItem> {
                     return renderer.get()
                 }
             }

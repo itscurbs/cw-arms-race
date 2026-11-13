@@ -2,6 +2,7 @@ package com.curbs.armsrace
 
 import com.curbs.armsrace.block.ModBlockEntities
 import com.curbs.armsrace.block.ModBlocks
+import com.curbs.armsrace.client.DroneBlockRenderer
 import com.curbs.armsrace.client.KilnRenderer
 import com.curbs.armsrace.client.WeaverRenderer
 import com.curbs.armsrace.entity.DroneEntity
@@ -48,9 +49,11 @@ object CwArmsRace {
         REGISTRATE.registerEventListeners(MOD_BUS)
 
         ModCreativeModeTabs.BASE_TAB
-        ModItems.FPV_DRONE
+        ModItems.CONTROLLER
         ModFluids.EPOXY
         ModEntities.FPV_DRONE
+        ModBlocks.FPV_DRONE
+        ModBlockEntities.FPV_DRONE
         ModBlocks.KILN
         ModBlocks.WEAVER
         ModBlockEntities.KILN
@@ -72,6 +75,7 @@ object CwArmsRace {
     private fun onClientSetup(event: FMLClientSetupEvent) {
         LOGGER.log(Level.INFO, "Initializing client...")
         event.enqueueWork {
+            BlockEntityRenderers.register(ModBlockEntities.FPV_DRONE.get(), ::DroneBlockRenderer)
             BlockEntityRenderers.register(ModBlockEntities.KILN.get(), ::KilnRenderer)
             BlockEntityRenderers.register(ModBlockEntities.WEAVER.get(), ::WeaverRenderer)
         }

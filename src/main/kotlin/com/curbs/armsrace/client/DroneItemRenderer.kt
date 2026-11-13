@@ -1,6 +1,6 @@
 package com.curbs.armsrace.client
 
-import com.curbs.armsrace.item.DroneItem
+import com.curbs.armsrace.item.DroneBlockItem
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.math.Axis
 import net.minecraft.client.renderer.MultiBufferSource
@@ -9,7 +9,7 @@ import net.minecraft.world.item.ItemStack
 import org.joml.Quaternionf
 import software.bernie.geckolib.renderer.GeoItemRenderer
 
-class DroneItemRenderer : GeoItemRenderer<DroneItem> {
+class DroneItemRenderer : GeoItemRenderer<DroneBlockItem> {
     constructor() : super(DroneItemGeoModel())
 
     private companion object {

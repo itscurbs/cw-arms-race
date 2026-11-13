@@ -4,6 +4,7 @@ import com.curbs.armsrace.CwArmsRace
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.MinecraftServer
 import net.minecraft.world.item.ItemDisplayContext
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
@@ -14,6 +15,7 @@ import software.bernie.geckolib.animation.AnimatableManager
 import software.bernie.geckolib.model.GeoModel
 import software.bernie.geckolib.renderer.GeoItemRenderer
 import software.bernie.geckolib.util.GeckoLibUtil
+import java.util.UUID
 import java.util.function.Consumer
 
 
@@ -37,6 +39,38 @@ class ControllerItem(
 
             override fun getGeoItemRenderer(): GeoItemRenderer<ControllerItem> = renderer
         })
+    }
+
+    companion object {
+        fun clearLink(server: MinecraftServer, controllerId: UUID) {
+            for (player in server.playerList.players) {
+                var changed = false
+
+                for (stack in player.inventory.items) {
+                    if (clearFrom(stack, controllerId)) changed = true
+                }
+
+                for (stack in player.inventory.offhand) {
+                    if (clearFrom(stack, controllerId)) changed = true
+                }
+
+                if (changed) {
+                    player.containerMenu.broadcastChanges()
+                }
+            }
+        }
+
+        private fun clearFrom(stack: ItemStack, controllerId: UUID): Boolean {
+            if (stack.item !is ControllerItem) return false
+
+            val link = stack.get(ModDataComponents.DRONE_LINK.get())
+                ?: return false
+
+            if (link.controllerId != controllerId) return false
+
+            stack.remove(ModDataComponents.DRONE_LINK.get())
+            return true
+        }
     }
 }
 

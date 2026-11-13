@@ -1,5 +1,6 @@
 {
   "block.armsrace.epoxy": "ʎxodƎ",
+  "block.armsrace.fpv_drone": "ǝuoɹᗡ ΛԀℲ",
   "block.armsrace.kiln": "uןıʞ",
   "block.armsrace.weaver": "ɹǝʌɐǝM",
   "entity.armsrace.fpv_drone": "ǝuoɹᗡ ΛԀℲ",
@@ -11,7 +12,6 @@
   "item.armsrace.coal_pitch": "ɥɔʇıԀ ןɐoƆ",
   "item.armsrace.coke_dust": "ʇsnᗡ ǝʞoƆ",
   "item.armsrace.controller": "ɹǝןןoɹʇuoƆ ǝuoɹᗡ",
-  "item.armsrace.fpv_drone": "ǝuoɹᗡ ΛԀℲ",
   "item.armsrace.pitch_fiber": "ɹǝqıℲ ɥɔʇıԀ",
   "item.armsrace.stabilized_fiber": "ɹǝqıℲ pǝzıןıqɐʇS",
   "itemGroup.armsrace.arms_race": "ǝɔɐᴚ sɯɹⱯ"
