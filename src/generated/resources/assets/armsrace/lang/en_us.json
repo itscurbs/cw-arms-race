@@ -14,5 +14,10 @@
   "item.armsrace.controller": "Drone Controller",
   "item.armsrace.pitch_fiber": "Pitch Fiber",
   "item.armsrace.stabilized_fiber": "Stabilized Fiber",
-  "itemGroup.armsrace.arms_race": "Arms Race"
+  "itemGroup.armsrace.arms_race": "Arms Race",
+  "message.armsrace.controller.unlinked": "Drone link lost",
+  "message.armsrace.controller.wrong_dimension": "That drone is in another dimension",
+  "tooltip.armsrace.controller.flying": "Linked to drone in flight",
+  "tooltip.armsrace.controller.linked": "Linked to drone at %s, %s, %s",
+  "tooltip.armsrace.controller.unlinked": "Not linked"
 }

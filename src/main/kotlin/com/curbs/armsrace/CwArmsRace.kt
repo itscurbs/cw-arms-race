@@ -11,12 +11,14 @@ import com.curbs.armsrace.entity.DroneStatePayload
 import com.curbs.armsrace.entity.ModEntities
 import com.curbs.armsrace.fluid.ModFluids
 import com.curbs.armsrace.item.ModCreativeModeTabs
+import com.curbs.armsrace.item.ModDataComponents
 import com.curbs.armsrace.item.ModItems
 import com.curbs.armsrace.item.SetDroneCameraPayload
 import com.curbs.armsrace.recipe.ModRecipes
 import com.simibubi.create.foundation.data.CreateRegistrate
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers
+import net.minecraft.server.level.ServerLevel
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.fml.common.Mod
@@ -49,6 +51,7 @@ object CwArmsRace {
         REGISTRATE.registerEventListeners(MOD_BUS)
 
         ModCreativeModeTabs.BASE_TAB
+        ModDataComponents.DRONE_LINK
         ModItems.CONTROLLER
         ModFluids.EPOXY
         ModEntities.FPV_DRONE
@@ -118,14 +121,15 @@ object CwArmsRace {
         ) { payload, context ->
             context.enqueueWork {
                 val player = context.player()
+                val data = player.persistentData
 
-                if (!player.persistentData.contains("Drone")) {
+                if (!data.hasUUID("Drone")) {
                     return@enqueueWork
                 }
 
-                val droneId = player.persistentData.getInt("Drone")
-
-                val drone = player.level().getEntity(droneId) as? DroneEntity ?: return@enqueueWork
+                val drone = (player.level() as? ServerLevel)
+                    ?.getEntity(data.getUUID("Drone")) as? DroneEntity
+                    ?: return@enqueueWork
 
                 drone.inputQueue.addLast(
                     com.curbs.armsrace.entity.DroneInputEntry(

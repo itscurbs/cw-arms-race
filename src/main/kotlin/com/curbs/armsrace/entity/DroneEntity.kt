@@ -1,5 +1,6 @@
 package com.curbs.armsrace.entity
 
+import com.curbs.armsrace.item.ControllerItem
 import com.julian.createwarfare.effects.server.ShakeEffect
 import com.julian.createwarfare.effects.server.SoundWaveEffect
 import com.julian.createwarfare.effects.server.WaveEffect
@@ -135,6 +136,8 @@ class DroneEntity(
     var move: Vec2 = Vec2(0f, 0f)
 
     var ownerId: UUID? = null
+
+    var controllerId: UUID? = null
 
     var inputSeq: Int = 0
     var lastAckSeq: Int = 0
@@ -326,8 +329,20 @@ class DroneEntity(
         if (!level().isClientSide) {
             body?.remove()
             body = null
+            if (reason == Entity.RemovalReason.DISCARDED || reason == Entity.RemovalReason.KILLED) {
+                unlinkController()
+            }
         }
         super.remove(reason)
+    }
+
+    private fun unlinkController() {
+        val id = controllerId ?: return
+        val server = level().server ?: return
+        ControllerItem.clearLink(server, id)
+        ownerId?.let { owner ->
+            server.playerList.getPlayer(owner)?.persistentData?.remove("Drone")
+        }
     }
 
     /**
@@ -461,12 +476,20 @@ class DroneEntity(
         tag.putDouble("BodyVX", v.x)
         tag.putDouble("BodyVY", v.y)
         tag.putDouble("BodyVZ", v.z)
+        ownerId?.let { tag.putUUID("Owner", it) }
+        controllerId?.let { tag.putUUID("Controller", it) }
     }
 
     /** Reads back what [addAdditionalSaveData] wrote. */
     override fun readAdditionalSaveData(tag: CompoundTag) {
         if (tag.contains("BodyVX")) {
             bodyVelocity = Vec3(tag.getDouble("BodyVX"), tag.getDouble("BodyVY"), tag.getDouble("BodyVZ"))
+        }
+        if (tag.hasUUID("Owner")) {
+            ownerId = tag.getUUID("Owner")
+        }
+        if (tag.hasUUID("Controller")) {
+            controllerId = tag.getUUID("Controller")
         }
     }
 }
