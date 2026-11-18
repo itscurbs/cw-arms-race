@@ -1,8 +1,10 @@
 package com.curbs.armsrace.item
 
 import com.curbs.armsrace.CwArmsRace
-import com.curbs.armsrace.block.DroneBlockEntity
+import com.curbs.armsrace.api.uav.UavCameraPayload
 import com.curbs.armsrace.api.uav.UavLinkable
+import com.curbs.armsrace.api.uav.UavLinkedItem
+import com.curbs.armsrace.api.uav.UavLinks
 import com.curbs.armsrace.api.uav.UavStationBlockEntity
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.MultiBufferSource
@@ -10,11 +12,11 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.InteractionResultHolder
-import net.minecraft.world.InteractionHand
-import net.minecraft.world.item.ItemDisplayContext
 import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemDisplayContext
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
 import net.neoforged.neoforge.network.PacketDistributor
@@ -28,20 +30,16 @@ import software.bernie.geckolib.util.GeckoLibUtil
 import java.util.UUID
 import java.util.function.Consumer
 
-
 class ControllerItem(
-    properties: Item.Properties
-) : Item(properties), GeoItem {
+    properties: Item.Properties,
+) : Item(properties), GeoItem, UavLinkedItem {
 
     private val cache = GeckoLibUtil.createInstanceCache(this)
 
     override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
-
     }
 
-    override fun getAnimatableInstanceCache(): AnimatableInstanceCache {
-        return cache
-    }
+    override fun getAnimatableInstanceCache(): AnimatableInstanceCache = cache
 
     override fun createGeoRenderer(consumer: Consumer<GeoRenderProvider>) {
         consumer.accept(object : GeoRenderProvider {
@@ -49,6 +47,13 @@ class ControllerItem(
 
             override fun getGeoItemRenderer(): GeoItemRenderer<ControllerItem> = renderer
         })
+    }
+
+    override fun clearLink(stack: ItemStack, controllerId: UUID): Boolean {
+        val link = stack.get(ModDataComponents.DRONE_LINK.get()) ?: return false
+        if (link.controllerId != controllerId) return false
+        stack.remove(ModDataComponents.DRONE_LINK.get())
+        return true
     }
 
     override fun useOn(context: UseOnContext): InteractionResult {
@@ -69,6 +74,7 @@ class ControllerItem(
         if (blockEntity.controllerId != null && blockEntity.controllerId != existingLink?.controllerId) {
             return InteractionResult.FAIL
         }
+
         val controllerId = existingLink?.controllerId ?: UUID.randomUUID()
         val link = DroneLink(
             controllerId,
@@ -98,6 +104,15 @@ class ControllerItem(
             return InteractionResultHolder.fail(stack)
         }
 
+        if (serverPlayer.isShiftKeyDown) {
+            val station = serverLevel.getBlockEntity(link.pos) as? UavStationBlockEntity
+                ?: return InteractionResultHolder.fail(stack)
+            val target = serverPlayer.pick(128.0, 0f, false).location
+            station.deployAutonomous(serverLevel, serverPlayer.uuid, target)
+                ?: return InteractionResultHolder.fail(stack)
+            return InteractionResultHolder.success(stack)
+        }
+
         val existing = link.droneId?.let { serverLevel.getEntity(it) as? UavLinkable }
         val drone = existing ?: spawnDrone(serverLevel, serverPlayer, link)
             ?: return InteractionResultHolder.fail(stack)
@@ -111,7 +126,7 @@ class ControllerItem(
             ?: return InteractionResultHolder.fail(stack)
         serverPlayer.persistentData.putUUID("Drone", entity.uuid)
         stack.set(ModDataComponents.DRONE_LINK.get(), link.copy(droneId = entity.uuid))
-        PacketDistributor.sendToPlayer(serverPlayer, SetDroneCameraPayload(entity.id))
+        PacketDistributor.sendToPlayer(serverPlayer, UavCameraPayload(entity.id))
         return InteractionResultHolder.success(stack)
     }
 
@@ -127,33 +142,7 @@ class ControllerItem(
 
     companion object {
         fun clearLink(server: MinecraftServer, controllerId: UUID) {
-            for (player in server.playerList.players) {
-                var changed = false
-
-                for (stack in player.inventory.items) {
-                    if (clearFrom(stack, controllerId)) changed = true
-                }
-
-                for (stack in player.inventory.offhand) {
-                    if (clearFrom(stack, controllerId)) changed = true
-                }
-
-                if (changed) {
-                    player.containerMenu.broadcastChanges()
-                }
-            }
-        }
-
-        private fun clearFrom(stack: ItemStack, controllerId: UUID): Boolean {
-            if (stack.item !is ControllerItem) return false
-
-            val link = stack.get(ModDataComponents.DRONE_LINK.get())
-                ?: return false
-
-            if (link.controllerId != controllerId) return false
-
-            stack.remove(ModDataComponents.DRONE_LINK.get())
-            return true
+            UavLinks.clear(server, controllerId)
         }
     }
 }
@@ -169,11 +158,10 @@ class ControllerItemRenderer : GeoItemRenderer<ControllerItem>(ControllerItemMod
         poseStack: PoseStack,
         buffer: MultiBufferSource,
         packedLight: Int,
-        packedOverlay: Int
+        packedOverlay: Int,
     ) {
         poseStack.pushPose()
         poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE)
-
         super.renderByItem(stack, displayContext, poseStack, buffer, packedLight, packedOverlay)
         poseStack.popPose()
     }
